@@ -1,0 +1,16 @@
+{
+  "template": "https://github.com/statisticsnorway/ssb-project-template-stat",
+  "commit": "cb5e93fbcb298920b3d76770352d823840c49a38",
+  "checkout": "1.0.0",
+  "context": {
+    "cookiecutter": {
+      "full_name": "Magnus Helliesen",
+      "email": "mkh@ssb.no",
+      "project_name": "model-solver",
+      "description": "Class to define, block analyze and solve dynamic and algebraic models numerically",
+      "license_year": "2023",
+      "_template": "https://github.com/statisticsnorway/ssb-project-template-stat"
+    }
+  },
+  "directory": null
+}
