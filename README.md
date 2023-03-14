@@ -12,13 +12,13 @@ ModelSolver is a model class. It defines, analyzes and solves dynamic algebraic 
 Usage is
 
 ```python
-model = ModelSolver(eqns, endo_vars)
+model = ModelSolver(equations, endogenous)
 ```
 
-where `eqns` are equations and `endo_vars` are endogenous variables, both stored as strings in lists.
+where `equations` are equations and `endogenous` are endogenous variables, both stored as strings in lists.
 
 ## Built with
-MNAModel uses the following packages
+ModelSolver uses the following packages
 * [os](https://docs.python.org/3/library/os.html)
 * [NumPy](https://numpy.org/)
 * [NetworkX](https://networkx.org/)
@@ -30,13 +30,13 @@ MNAModel uses the following packages
 * [collections](https://docs.python.org/3/library/collections.html)
 
 ## Example of use
-Let `eqns = ['x+y = 1', 'x-y = 2']` and `endo_vars = ['x', 'y']`, then the model class is initialized by
+Let `equations = ['x+y = 1', 'x-y = 2']` and `endogenous = ['x', 'y']`, then the model class is initialized by
 
 ```python
-model = MNAModel(eqns, endo_vars)
+model = ModelSolver(equations, endogenous)
 ```
 
-When initialized, the class reads in the equations, analyzes them for any lags, before it block analyzes it to find the smalles model blocks that must be solved simultaneously. Note that MNAModel is not case sensitive, so 'x' is the same as 'X', both in equations, lists and dataframe (below).
+When initialized, the class reads in the equations, analyzes them for any lags, before it block analyzes it to find the smalles model blocks that must be solved simultaneously. Note that ModelSolver is not case sensitive, so 'x' is the same as 'X', both in equations, lists and dataframe (below).
 
 When the class is finished initializing, the user can call the following methods:
 * `solution = model.solve(dataframe)` where `dataframe` is a **Pandas** dataframe containing initial values for the endogenous variables and values for the exogenous variables. `solution` is a dataframe with same dimensions as `dataframe` containing the solutions for the endogenous variables.
