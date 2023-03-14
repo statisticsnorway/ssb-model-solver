@@ -7,7 +7,6 @@ Magnus Helliesen <mkh@ssb.no>
 
 ---
 
-# model-solver
 ModelSolver is a model class. It defines, analyzes and solves dynamic algebraic model with lots of equations.
 
 Usage is
