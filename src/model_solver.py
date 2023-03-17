@@ -51,7 +51,7 @@ class ModelSolver:
         """
 
         self._some_error = False
-        self._lag_notation = '___lag'
+        self._lag_notation = '___LAG'
         self._max_lag = 0
         self._root_tolerance = 1e-7
 
@@ -63,7 +63,7 @@ class ModelSolver:
         print('* Analyzing model...')
 
         # Analyzing equation strings to determine variables, lags and coefficients
-        self._eqns_with_details, self._var_mapping = self._analyze_eqns()
+        self._eqns_analyzed, self._var_mapping, self._lag_mapping = self._analyze_eqns()
 
         # Using graph theory to analyze equations using existing algorithms to establish minimum simultaneous blocks
         self._eqns_endo_vars_bigraph = self._gen_eqns_endo_vars_bigraph()
@@ -159,16 +159,16 @@ class ModelSolver:
 
         print('\t* Analyzing equation strings')
 
-        eqns_with_and_without_lag_notation_and_var = []
+        eqns_analyzed = []
 
+        var_mapping, lag_mapping = {}, {}
         for eqn in self._eqns:
-            eqns_with_and_without_lag_notation_and_var += [eqn, *self._analyze_eqn(eqn)],
+            eqn_analyzed = [eqn, *self._analyze_eqn(eqn)]
+            eqns_analyzed += eqn_analyzed,
+            var_mapping = {**var_mapping, **eqn_analyzed[2]}
+            lag_mapping = {**lag_mapping, **eqn_analyzed[3]}
 
-        exog_var_mapping = {}
-        for mapping in [x[3] for x in eqns_with_and_without_lag_notation_and_var]:
-            exog_var_mapping.update(mapping)
-
-        return tuple(eqns_with_and_without_lag_notation_and_var), exog_var_mapping
+        return tuple(eqns_analyzed), var_mapping, lag_mapping
 
 
     def _analyze_eqn(self, eqn: str):
@@ -187,7 +187,7 @@ class ModelSolver:
         if self._some_error:
             return
 
-        parsed_eqn_with_lag_notation, temp_vars, var_mapping = [], [], {}
+        parsed_eqn_with_lag_notation, var_mapping, lag_mapping = [], {}, {}
         num, var, lag = '', '', ''
         is_num, is_var, is_lag, is_sci = False, False, False, False
 
@@ -205,8 +205,9 @@ class ModelSolver:
                     # Replace (-)-notation by LAG_NOTATION for lags and appends _ to the end to mark the end
                     pfx = '' if lag == '' else ''.join([self._lag_notation, str(-int(lag[1:-1])), '_'])
                     parsed_eqn_with_lag_notation += ''.join([var, pfx]),
-                    temp_vars += [''.join([var, lag]), ''.join([var, pfx])],
-                    var_mapping[''.join([var, pfx])] = [var, 0 if lag == '' else -int(lag[1:-1]), var if lag == '' else ''.join([var, str(lag)])]
+                    var_mapping = {**var_mapping, **{''.join([var, lag]): ''.join([var, pfx])}}
+                    var_mapping = {**var_mapping, **{''.join([var, pfx]): ''.join([var, lag])}}
+                    lag_mapping = {**lag_mapping, **{''.join([var, pfx]): [var, 0 if lag == '' else -int(lag[1:-1])]}}
                     if lag != '':
                         self._max_lag = max(self._max_lag, -int(lag.replace('(', '').replace(')', '')))
                 if chr != ' ':
@@ -233,12 +234,7 @@ class ModelSolver:
 
         eqn_with_lag_notation=''.join(parsed_eqn_with_lag_notation)
 
-        vars = []
-        for var in temp_vars:
-            if var not in vars:
-                vars += var,
-
-        return eqn_with_lag_notation, tuple(vars), var_mapping
+        return eqn_with_lag_notation, var_mapping, lag_mapping
 
 
     def _gen_eqns_endo_vars_bigraph(self):
@@ -261,9 +257,9 @@ class ModelSolver:
         eqns_endo_vars_bigraph.add_nodes_from(self._endo_vars, bipartite=1)
 
         # Make edges between equations and endogenous variables
-        for i, vars_in_eqn in enumerate([[x[0] for x in y[1]] for y in [[z[1], z[2]] for z in self._eqns_with_details]]):
-            for endo_var_in_eqn in [x for x in vars_in_eqn if x in self._endo_vars]:
-                eqns_endo_vars_bigraph.add_edge(i, endo_var_in_eqn)
+        for i, eqns in enumerate(self._eqns_analyzed):
+            for endo_var in [x for x in eqns[2].keys() if x in self._endo_vars]:
+                eqns_endo_vars_bigraph.add_edge(i, endo_var)
 
         return eqns_endo_vars_bigraph
 
@@ -365,7 +361,7 @@ class ModelSolver:
         # Make edges between exogenous variables and strong components it is a part of
         for node in self._condenced_model_digraph.nodes():
             for member in self._condenced_model_digraph.nodes[node]['members']:
-                for exog_var_adjacent_to_node in [x[0] for x in self._eqns_with_details[self._eqn_endo_var_match[member]][2] if x[0] not in self._endo_vars]:
+                for exog_var_adjacent_to_node in [x[0] for x in self._eqns_analyzed[self._eqn_endo_var_match[member]][2] if x[0] not in self._endo_vars]:
                     augmented_condenced_equation_digraph.add_edge(exog_var_adjacent_to_node, node)
 
         return augmented_condenced_equation_digraph
@@ -383,17 +379,18 @@ class ModelSolver:
 
         simulation_code, blocks = [], []
         for node in reversed(tuple(self._condenced_model_digraph.nodes())):
-            block_endo_vars, block_eqns, block_eqns_with_lag_notation, block_exog_vars = [], [], [], set()
+            block_endo_vars, block_eqns_orig, block_eqns_lags, block_exog_vars = [], [], [], set()
             for member in self._condenced_model_digraph.nodes[node]['members']:
                 i = self._eqn_endo_var_match[member]
                 block_endo_vars += member,
-                block_eqns += self._eqns_with_details[i][0],
-                block_eqns_with_lag_notation += self._eqns_with_details[i][1],
-                block_exog_vars.update([x[1] for x in self._eqns_with_details[i][2]])
+                block_eqns_orig += self._eqns_analyzed[i][0],
+                block_eqns_lags += self._eqns_analyzed[i][1],
+                block_exog_vars.update([val for key, val in self._eqns_analyzed[i][2].items() if self._lag_notation not in key])
             block_exog_vars.difference_update(set(block_endo_vars))
-            blocks += tuple([tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns)]),
-            simulation_code += tuple([*self._gen_obj_fun_and_jac(tuple(block_eqns_with_lag_notation), tuple(block_endo_vars), tuple(block_exog_vars)),
-                tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_with_lag_notation)]),
+
+            blocks += tuple([tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_orig)]),
+            simulation_code += tuple([*self._gen_obj_fun_and_jac(tuple(block_eqns_lags), tuple(block_endo_vars), tuple(block_exog_vars)),
+                tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_lags)]),
 
         return tuple(simulation_code), tuple(blocks)
 
@@ -404,7 +401,7 @@ class ModelSolver:
         TBA
         """
 
-        endo_symb, exog_symb, func = [], [], []
+        endo_symb, exog_symb, obj_fun = [], [], []
         for endo_var in endo_vars:
             var(endo_var)
             endo_symb += eval(endo_var),
@@ -413,18 +410,18 @@ class ModelSolver:
             exog_symb += eval(exog_var),
         for eqn in eqns:
             lhs, rhs = eqn.split('=')
-            func_row = eval('-'.join([''.join(['(', lhs.strip().strip('+'), ')']), ''.join(['(', rhs.strip().strip('+'), ')'])]))
-            func += func_row,
+            obj_fun_row = eval('-'.join([''.join(['(', lhs.strip().strip('+'), ')']), ''.join(['(', rhs.strip().strip('+'), ')'])]))
+            obj_fun += obj_fun_row,
 
-        jaco = Matrix(func).jacobian(Matrix(endo_symb)).tolist()
+        jac = Matrix(obj_fun).jacobian(Matrix(endo_symb)).tolist()
 
-        func_lambdify = Lambdify([*endo_symb, *exog_symb], func, cse=True)
-        jaco_lambdify = Lambdify([*endo_symb, *exog_symb], jaco, cse=True)
+        obj_fun_lambdify = Lambdify([*endo_symb, *exog_symb], obj_fun, cse=True)
+        jac_lambdify = Lambdify([*endo_symb, *exog_symb], jac, cse=True)
 
-        output_func = lambda val_list, *args: func_lambdify(*val_list, *args)
-        output_jaco = lambda val_list, *args: jaco_lambdify(*val_list, *args)
+        output_obj_fun = lambda val_list, *args: obj_fun_lambdify(*val_list, *args)
+        output_jac = lambda val_list, *args: jac_lambdify(*val_list, *args)
 
-        return output_func, output_jaco
+        return output_obj_fun, output_jac
 
 
     def switch_endo_var(self, old_endo, new_endo):
@@ -476,7 +473,7 @@ class ModelSolver:
         print('Endogenous ({} variables):'.format(len(block[0])))
         print('\n'.join([' '.join(x) for x in list(self._chunks(block[0], 25))]))
         print('\nExogenous ({} variables):'.format(len(block[1])))
-        print('\n'.join([' '.join(x) for x in list(self._chunks([self._var_mapping.get(x)[2] for x in block[1]], 25))]))
+        print('\n'.join([' '.join(x) for x in list(self._chunks([self._var_mapping.get(x) for x in block[1]], 25))]))
         print('\nEquations ({} equations):'.format(len(block[2])))
         print('\n'.join(block[2]))
 
@@ -553,7 +550,7 @@ class ModelSolver:
 
         exog_var_vals = []
         for exog_var in exog_vars:
-            exog_var_name, lag, _ = self._var_mapping.get(exog_var)
+            exog_var_name, lag = self._lag_mapping.get(exog_var)
             exog_var_vals += self._fetch_cell(data, period-lag, var_col_index.get(exog_var_name)),
 
         return tuple(exog_var_vals)
