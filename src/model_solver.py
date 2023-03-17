@@ -703,10 +703,6 @@ class ModelSolver:
         else:
             plt.figure(figsize=(5, 5))
             colors = [node[1]['color'] for node in graph_to_plot.nodes(data=True)]
-            #layout = nx.planar_layout(subgraph_to_pyvis), node_size=2500, node_color=colors)
-            #layout = nx.spring_layout(subgraph_to_pyvis, k=5/subgraph_to_pyvis.order()**0.5), node_size=2500, node_color=colors, font_size=9)
-            #layout = nx.planar_layout(subgraph_to_pyvis), node_size=2500, node_color=colors, font_size=9)
-            #layout = nx.spectral_layout(subgraph_to_pyvis)
             layout = nx.shell_layout(graph_to_plot)
             nx.draw(graph_to_plot, with_labels=True, labels=mapping, pos=layout, node_size=3000, node_color=colors, font_size=7, font_color='white')
             plt.plot()
