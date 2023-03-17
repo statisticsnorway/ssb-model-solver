@@ -498,7 +498,7 @@ class ModelSolver:
             print(input_data.index[period], end=' ')
             for i, simulation_code in enumerate(self._simulation_code):
                 [obj_fun, jac, endo_vars, exog_vars, _] =  simulation_code
-                solution = self._solve_system_of_eqns(
+                solution = self._solve_block(
                     obj_fun,
                     jac,
                     endo_vars,
@@ -511,9 +511,9 @@ class ModelSolver:
                 if solution['status'] != 0:
                     print('\nERROR: Failed to solve block {}:'.format(i))
                     print(''.join(['Endogenous variables: ', ','.join(endo_vars)]))
-                    print(','.join([str(x) for x in self._make_list_of_endo_vals(endo_vars, output_data_array, var_col_index, period)]))
+                    print(','.join([str(x) for x in self._gen_endo_vals(endo_vars, output_data_array, var_col_index, period)]))
                     print(''.join(['Exogenous variables: ', ','.join(exog_vars)]))
-                    print(','.join([str(x) for x in self._make_list_of_exog_vals(exog_vars, output_data_array, var_col_index, period)]))
+                    print(','.join([str(x) for x in self._gen_exog_vals(exog_vars, output_data_array, var_col_index, period)]))
                 if solution['status'] == 2:
                     return
                 
@@ -526,7 +526,7 @@ class ModelSolver:
         return self._last_solution
 
 
-    def _solve_system_of_eqns(self, obj_fun, jac, endo_vars: tuple, exog_vars: tuple, output_data_names: tuple, period: int):
+    def _solve_block(self, obj_fun, jac, endo_vars: tuple, exog_vars: tuple, output_data_names: tuple, period: int):
         """
         TBA
         """
@@ -534,8 +534,8 @@ class ModelSolver:
         output_data, var_col_index = output_data_names
         solution = self._newton_raphson(
             obj_fun,
-            self._make_list_of_endo_vals(endo_vars, output_data, var_col_index, period),
-            args = self._make_list_of_exog_vals(exog_vars, output_data, var_col_index, period),
+            self._gen_endo_vals(endo_vars, output_data, var_col_index, period),
+            args = self._gen_exog_vals(exog_vars, output_data, var_col_index, period),
             tol = self._root_tolerance,
             jac = jac
             )
@@ -543,7 +543,7 @@ class ModelSolver:
         return solution
 
 
-    def _make_list_of_exog_vals(self, exog_vars: list, data: np.array, var_col_index: dict, period: int):
+    def _gen_exog_vals(self, exog_vars: list, data: np.array, var_col_index: dict, period: int):
         """
         TBA
         """
@@ -551,25 +551,25 @@ class ModelSolver:
         exog_var_vals = []
         for exog_var in exog_vars:
             exog_var_name, lag = self._lag_mapping.get(exog_var)
-            exog_var_vals += self._fetch_cell(data, period-lag, var_col_index.get(exog_var_name)),
+            exog_var_vals += self._fetch_cell(data, var_col_index.get(exog_var_name), period-lag),
 
         return tuple(exog_var_vals)
 
 
-    def _make_list_of_endo_vals(self, endo_vars: list, data: np.array, var_col_index: dict, period: int):
+    def _gen_endo_vals(self, endo_vars: list, data: np.array, var_col_index: dict, period: int):
         """
         TBA
         """
 
         endo_var_vals = []
         for endo_var in endo_vars:
-            endo_var_vals += self._fetch_cell(data, period, var_col_index.get(endo_var)),
+            endo_var_vals += self._fetch_cell(data, var_col_index.get(endo_var), period),
 
         return np.array(endo_var_vals, dtype=np.float64)
 
 
     @staticmethod
-    def _fetch_cell(array, row, col):
+    def _fetch_cell(array, col, row):
         return array[row, col]
 
 
