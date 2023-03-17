@@ -66,7 +66,7 @@ class ModelSolver:
 
         # Using graph theory to analyze equations using existing algorithms to establish minimum simultaneous blocks
         self._eqns_endo_vars_bigraph = self._gen_eqns_endo_vars_bigraph()
-        self._eqn_endo_var_match = self._find_maximum_bipartite_match()
+        self._eqn_endo_var_match = self._find_max_bipartite_match()
         self._model_digraph = self._gen_model_digraph()
         self._condenced_model_digraph, self.condenced_model_node_varlist_mapping = self._gen_condenced_model_digraph()
         self._augmented_condenced_model_digraph = self._gen_augmented_condenced_model_digraph()
@@ -255,19 +255,19 @@ class ModelSolver:
         print('\t* Generating bipartite graph connecting equations and endogenous variables')
 
         # Make nodes in bipartite graph with equations U (0) and endogenous variables in V (1)
-        equation_endo_var_bipartite_graph = nx.Graph()
-        equation_endo_var_bipartite_graph.add_nodes_from([i for i, _ in enumerate(self._eqns)], bipartite=0)
-        equation_endo_var_bipartite_graph.add_nodes_from(self._endo_vars, bipartite=1)
+        eqns_endo_vars_bigraph = nx.Graph()
+        eqns_endo_vars_bigraph.add_nodes_from([i for i, _ in enumerate(self._eqns)], bipartite=0)
+        eqns_endo_vars_bigraph.add_nodes_from(self._endo_vars, bipartite=1)
 
         # Make edges between equations and endogenous variables
         for i, vars_in_eqn in enumerate([[x[0] for x in y[1]] for y in [[z[1], z[2]] for z in self._eqns_with_details]]):
             for endo_var_in_eqn in [x for x in vars_in_eqn if x in self._endo_vars]:
-                equation_endo_var_bipartite_graph.add_edge(i, endo_var_in_eqn)
+                eqns_endo_vars_bigraph.add_edge(i, endo_var_in_eqn)
 
-        return equation_endo_var_bipartite_graph
+        return eqns_endo_vars_bigraph
 
 
-    def _find_maximum_bipartite_match(self):
+    def _find_max_bipartite_match(self):
         """
         Finds a maximum bipartite match (MBM) of bipartite graph connetcting equations (U) with endogenous variables (V).
         See https://www.geeksforgeeks.org/maximum-bipartite-matching/ for more on MBM.
@@ -283,8 +283,8 @@ class ModelSolver:
 
         # Use maximum bipartite matching to make a one to one mapping between equations and endogenous variables
         try:
-            mamimum_bipartite_match = nx.bipartite.maximum_matching(self._eqns_endo_vars_bigraph, [i for i, _ in enumerate(self._eqns)])
-            if len(mamimum_bipartite_match)/2 < len(self._eqns):
+            maximum_bipartite_match = nx.bipartite.maximum_matching(self._eqns_endo_vars_bigraph, [i for i, _ in enumerate(self._eqns)])
+            if len(maximum_bipartite_match)/2 < len(self._eqns):
                 self._some_error = True
                 print('ERROR: Model is over or under spesified')
                 return
@@ -293,7 +293,7 @@ class ModelSolver:
             print('ERROR: Unable to analyze model')
             return
 
-        return mamimum_bipartite_match
+        return maximum_bipartite_match
 
 
     def _gen_model_digraph(self):
