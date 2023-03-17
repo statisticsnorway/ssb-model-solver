@@ -67,7 +67,7 @@ class ModelSolver:
 
         # Using graph theory to analyze equations using existing algorithms to establish minimum simultaneous blocks
         self._eqns_endo_vars_bigraph = self._gen_eqns_endo_vars_bigraph()
-        self._eqn_endo_var_match = self._find_max_bipartite_match()
+        self._eqns_endo_vars_match = self._find_max_bipartite_match()
         self._model_digraph = self._gen_model_digraph()
         self._condenced_model_digraph, self.condenced_model_node_varlist_mapping = self._gen_condenced_model_digraph()
         self._augmented_condenced_model_digraph = self._gen_augmented_condenced_model_digraph()
@@ -205,9 +205,9 @@ class ModelSolver:
                     # Replace (-)-notation by LAG_NOTATION for lags and appends _ to the end to mark the end
                     pfx = '' if lag == '' else ''.join([self._lag_notation, str(-int(lag[1:-1])), '_'])
                     parsed_eqn_with_lag_notation += ''.join([var, pfx]),
-                    var_mapping = {**var_mapping, **{''.join([var, lag]): ''.join([var, pfx])}}
-                    var_mapping = {**var_mapping, **{''.join([var, pfx]): ''.join([var, lag])}}
-                    lag_mapping = {**lag_mapping, **{''.join([var, pfx]): [var, 0 if lag == '' else -int(lag[1:-1])]}}
+                    var_mapping[''.join([var, lag])] = ''.join([var, pfx])
+                    var_mapping[''.join([var, pfx])] = ''.join([var, lag])
+                    lag_mapping[''.join([var, pfx])] = (var, 0 if lag == '' else -int(lag[1:-1]))
                     if lag != '':
                         self._max_lag = max(self._max_lag, -int(lag.replace('(', '').replace(')', '')))
                 if chr != ' ':
@@ -313,8 +313,8 @@ class ModelSolver:
 
         # Make directed edges showing how endogenous variables affect every other endogenous variables using bipartite graph and MBM
         for edge in self._eqns_endo_vars_bigraph.edges():
-            if edge[0] != self._eqn_endo_var_match[edge[1]]:
-                model_digraph.add_edge(edge[1], self._eqn_endo_var_match[edge[0]])
+            if edge[0] != self._eqns_endo_vars_match[edge[1]]:
+                model_digraph.add_edge(edge[1], self._eqns_endo_vars_match[edge[0]])
 
         return model_digraph
 
@@ -338,11 +338,11 @@ class ModelSolver:
         condenced_model_digraph = nx.condensation(self._model_digraph)
 
         # Make a dictionary that associate every node of condensation with a list of variables
-        condenced_model_node_varlist_mapping = {}
+        node_vars_mapping = {}
         for node in tuple(condenced_model_digraph.nodes()):
-            condenced_model_node_varlist_mapping[node] = tuple(condenced_model_digraph.nodes[node]['members'])
+            node_vars_mapping[node] = tuple(condenced_model_digraph.nodes[node]['members'])
 
-        return condenced_model_digraph, condenced_model_node_varlist_mapping
+        return condenced_model_digraph, node_vars_mapping
 
 
     def _gen_augmented_condenced_model_digraph(self):
@@ -361,7 +361,7 @@ class ModelSolver:
         # Make edges between exogenous variables and strong components it is a part of
         for node in self._condenced_model_digraph.nodes():
             for member in self._condenced_model_digraph.nodes[node]['members']:
-                for exog_var_adjacent_to_node in [x[0] for x in self._eqns_analyzed[self._eqn_endo_var_match[member]][2] if x[0] not in self._endo_vars]:
+                for exog_var_adjacent_to_node in [x[0] for x in self._eqns_analyzed[self._eqns_endo_vars_match[member]][2] if x[0] not in self._endo_vars]:
                     augmented_condenced_equation_digraph.add_edge(exog_var_adjacent_to_node, node)
 
         return augmented_condenced_equation_digraph
@@ -381,7 +381,7 @@ class ModelSolver:
         for node in reversed(tuple(self._condenced_model_digraph.nodes())):
             block_endo_vars, block_eqns_orig, block_eqns_lags, block_exog_vars = [], [], [], set()
             for member in self._condenced_model_digraph.nodes[node]['members']:
-                i = self._eqn_endo_var_match[member]
+                i = self._eqns_endo_vars_match[member]
                 block_endo_vars += member,
                 block_eqns_orig += self._eqns_analyzed[i][0],
                 block_eqns_lags += self._eqns_analyzed[i][1],
