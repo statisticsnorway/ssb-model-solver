@@ -356,15 +356,15 @@ class ModelSolver:
         if self._some_error:
             return
 
-        augmented_condenced_equation_digraph = self._condenced_model_digraph.copy()
+        augmented_condenced_model_digraph = self._condenced_model_digraph.copy()
 
         # Make edges between exogenous variables and strong components it is a part of
         for node in self._condenced_model_digraph.nodes():
             for member in self._condenced_model_digraph.nodes[node]['members']:
                 for exog_var_adjacent_to_node in [x[0] for x in self._eqns_analyzed[self._eqns_endo_vars_match[member]][2] if x[0] not in self._endo_vars]:
-                    augmented_condenced_equation_digraph.add_edge(exog_var_adjacent_to_node, node)
+                    augmented_condenced_model_digraph.add_edge(exog_var_adjacent_to_node, node)
 
-        return augmented_condenced_equation_digraph
+        return augmented_condenced_model_digraph
 
 
     def _gen_simulation_code(self):
