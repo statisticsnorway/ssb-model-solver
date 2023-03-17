@@ -382,10 +382,11 @@ class ModelSolver:
             block_endo_vars, block_eqns_orig, block_eqns_lags, block_exog_vars = [], [], [], set()
             for member in self._condenced_model_digraph.nodes[node]['members']:
                 i = self._eqns_endo_vars_match[member]
+                eqns_analyzed = self._eqns_analyzed[i]
                 block_endo_vars += member,
-                block_eqns_orig += self._eqns_analyzed[i][0],
-                block_eqns_lags += self._eqns_analyzed[i][1],
-                block_exog_vars.update([val for key, val in self._eqns_analyzed[i][2].items() if self._lag_notation not in key])
+                block_eqns_orig += eqns_analyzed[0],
+                block_eqns_lags += eqns_analyzed[1],
+                block_exog_vars.update([val for key, val in eqns_analyzed[2].items() if self._lag_notation not in key])
             block_exog_vars.difference_update(set(block_endo_vars))
 
             blocks += tuple([tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_orig)]),
