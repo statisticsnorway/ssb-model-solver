@@ -361,7 +361,8 @@ class ModelSolver:
         # Make edges between exogenous variables and strong components it is a part of
         for node in self._condenced_model_digraph.nodes():
             for member in self._condenced_model_digraph.nodes[node]['members']:
-                for exog_var_adjacent_to_node in [x[0] for x in self._eqns_analyzed[self._eqns_endo_vars_match[member]][2] if x[0] not in self._endo_vars]:
+                for exog_var_adjacent_to_node in [val for key, val in self._eqns_analyzed[self._eqns_endo_vars_match[member]][2].items()
+                                                  if self._lag_notation not in val and key not in self._endo_vars]:
                     augmented_condenced_model_digraph.add_edge(exog_var_adjacent_to_node, node)
 
         return augmented_condenced_model_digraph
