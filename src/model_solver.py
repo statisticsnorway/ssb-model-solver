@@ -641,11 +641,12 @@ class ModelSolver:
         if self._some_error:
             return
 
-        try:
+        if any([variable in self._condenced_model_digraph.nodes[x]['members'] for x in self._condenced_model_digraph.nodes()]):
             variable_node = [variable in self._condenced_model_digraph.nodes[x]['members'] for x in self._condenced_model_digraph.nodes()].index(True)
-        except ValueError:
-            print(' '.join([variable, 'is exogenous']))
-            return
+        elif variable in self._augmented_condenced_model_digraph.nodes(): 
+            variable_node = variable
+        else:
+            raise NameError('Variable is not in model')
 
         ancr_nodes = nx.ancestors(self._augmented_condenced_model_digraph, variable_node)
         desc_nodes = nx.descendants(self._augmented_condenced_model_digraph, variable_node)
