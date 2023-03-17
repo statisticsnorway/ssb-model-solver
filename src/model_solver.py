@@ -391,14 +391,14 @@ class ModelSolver:
                 block_exog_vars.update([x[1] for x in self._eqns_with_details[i][2]])
             block_exog_vars.difference_update(set(block_endo_vars))
             blocks += tuple([tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns)]),
-            simulation_code += tuple([*self._gen_objective_function_and_jacobian(tuple(block_eqns_with_lag_notation), tuple(block_endo_vars), tuple(block_exog_vars)),
+            simulation_code += tuple([*self._gen_obj_fun_and_jac(tuple(block_eqns_with_lag_notation), tuple(block_endo_vars), tuple(block_exog_vars)),
                 tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_with_lag_notation)]),
 
         return tuple(simulation_code), tuple(blocks)
 
 
     @staticmethod
-    def _gen_objective_function_and_jacobian(eqns: tuple, endo_vars: tuple, exog_vars: tuple):
+    def _gen_obj_fun_and_jac(eqns: tuple, endo_vars: tuple, exog_vars: tuple):
         """
         TBA
         """
@@ -491,7 +491,7 @@ class ModelSolver:
         print('Solving model...')
 
         output_data_array = input_data.to_numpy(dtype=np.float64, copy=True)
-        var_names = input_data.columns.str.lower().to_list()
+        var_col_index = {var: i for i, var in enumerate(input_data.columns.str.lower().to_list())}
 
         print('\tFirst period: {}, last period: {}'.format(input_data.index[self._max_lag], input_data.index[output_data_array.shape[0]-1]))
         print('\tSolving', end=' ')
@@ -499,64 +499,64 @@ class ModelSolver:
         for period in list(range(self._max_lag, output_data_array.shape[0])):
             print(input_data.index[period], end=' ')
             for block, simulation_code in enumerate(self._simulation_code):
-                solution = self._solve_system_of_eqns(simulation_code[0],
-                                                            simulation_code[1],
-                                                            simulation_code[2],
-                                                            simulation_code[3],
-                                                            tuple([output_data_array, var_names]),
-                                                            period)
+                [obj_fun, jac, endo_vars, exog_vars, _] =  simulation_code
+                solution = self._solve_system_of_eqns(obj_fun,
+                                                      jac,
+                                                      endo_vars,
+                                                      exog_vars,
+                                                      tuple([output_data_array, var_col_index]),
+                                                      period)
 
                 # If solution fails then print details about block and return
                 if solution['status'] != 0:
                     print('\nERROR: Failed to solve block {}:'.format(block))
                     print(''.join(['Endogenous variables: ', ','.join(simulation_code[2])]))
-                    print(','.join([str(x) for x in self._make_list_of_endo_vals(simulation_code[2], output_data_array, var_names, period)]))
+                    print(','.join([str(x) for x in self._make_list_of_endo_vals(simulation_code[2], output_data_array, [key for key, _ in var_col_index.items()], period)]))
                     print(''.join(['Exogenous variables: ', ','.join(simulation_code[3])]))
-                    print(','.join([str(x) for x in self._make_list_of_exog_vals(simulation_code[3], output_data_array, var_names, period)]))
+                    print(','.join([str(x) for x in self._make_list_of_exog_vals(simulation_code[3], output_data_array, [key for key, _ in var_col_index.items()], period)]))
                 if solution['status'] == 2:
                     return
-
-                for i, endo_var in enumerate(simulation_code[2]):
-                    output_data_array[period, var_names.index(endo_var)] = solution['x'][i]
+                
+                output_data_array[period, [val for key, val in var_col_index.items() if key in simulation_code[2]]] = solution['x']
 
         print('\nFinished')
 
-        self._last_solution = pd.DataFrame(output_data_array, columns=var_names, index=input_data.index)
+        self._last_solution = pd.DataFrame(output_data_array, columns=[key for key, _ in var_col_index], index=input_data.index)
 
         return self._last_solution
 
 
-    def _solve_system_of_eqns(self, objective_function, jacobian_matrix, endo_var_list: tuple, exog_var_list: tuple, output_data_names: tuple, period: int):
+    def _solve_system_of_eqns(self, obj_fun, jac, endo_vars: tuple, exog_vars: tuple, output_data_names: tuple, period: int):
         """
         TBA
         """
-        output_data, variable_names = output_data_names
-        solution = self._newton_raphson(objective_function,
-                    self._make_list_of_endo_vals(endo_var_list, output_data, variable_names, period),
-                    args = self._make_list_of_exog_vals(exog_var_list, output_data, variable_names, period),
+        output_data, var_col_index = output_data_names
+        solution = self._newton_raphson(obj_fun,
+                    self._make_list_of_endo_vals(endo_vars, output_data, var_col_index, period),
+                    args = self._make_list_of_exog_vals(exog_vars, output_data, var_col_index, period),
                     tol = self._root_tolerance,
-                    jac = jacobian_matrix)
+                    jac = jac)
         return solution
 
 
-    def _make_list_of_exog_vals(self, exog_vars: list, data: np.array, variable_names: list, period: int):
+    def _make_list_of_exog_vals(self, exog_vars: list, data: np.array, var_col_index: dict, period: int):
         """
         TBA
         """
         exog_var_vals = []
         for exog_var in exog_vars:
             exog_var_name, lag, _ = self._var_mapping[exog_var]
-            exog_var_vals += self._fetch_cell(data, period-lag, variable_names.index(exog_var_name)),
+            exog_var_vals += self._fetch_cell(data, period-lag, var_col_index.get(exog_var_name)),
         return tuple(exog_var_vals)
 
 
-    def _make_list_of_endo_vals(self, endo_vars: list, data: np.array, variable_names: list, period: int):
+    def _make_list_of_endo_vals(self, endo_vars: list, data: np.array, var_col_index: dict, period: int):
         """
         TBA
         """
         endo_var_vals = []
         for endo_var in endo_vars:
-            endo_var_vals += self._fetch_cell(data, period, variable_names.index(endo_var)),
+            endo_var_vals += self._fetch_cell(data, period, var_col_index.get(endo_var)),
         return np.array(endo_var_vals, dtype=np.float64)
 
 
