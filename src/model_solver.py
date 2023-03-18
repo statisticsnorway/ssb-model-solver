@@ -11,29 +11,23 @@ from symengine import var, Matrix, Lambdify
 import matplotlib.pyplot as plt
 from collections import Counter
 from functools import cache
+from src.data_fetcher_njit import gen_endo_vars_vals, gen_exog_vars_vals
 
 
 class ModelSolver:
     """
     EXAMPLE OF USE USE:
-
     Let "eqns" and "endo_vars" be lists with equations and endogenous variables, respectively, stored as strings. E.g.
         eqns = ['x+y=A', 'x-y=B']
         endo_vars = ['x', 'y']
-
     A class instance called "model" is initialized by
-
         model = MNAModel(eqns, endo_vars)
     This reads in the equations and endogenous variables and perform block analysis and ordering and generates simulation code.
     The model is then ready to be solved subject to data (exogenous and initial values of endogenous variables) in a Pandas dataframe.
-
     Let "data" be a dataframe containing data on A and B and initial values for x and y. Then the model can be solved by
-
         solution = model.solve_model(data)
-
     Now "solution" is a Pandas dataframe with exactly the same dimensions as "data", but where the endogenous variables are replaced by the solutions to the model.
     The last solution is also stored in "model.last_solution".
-
     Somethin about dependecy graphs...
     """
 
@@ -41,11 +35,9 @@ class ModelSolver:
         """
         Reads in equations and endogenous variables and does a number of operations, e.g. analyzing block structure using graph theory.
         Stores a number of results in instance variables.
-
         Args:
             eqns_list (list): List of equations equations as strings
             endog_vars_list (list): List of endogenous variables as strings
-
         Returns:
             None.
         """
@@ -54,6 +46,7 @@ class ModelSolver:
         self._lag_notation = '___LAG'
         self._max_lag = 0
         self._root_tolerance = 1e-7
+        self._max_iter = 10
 
         print('Initializing model...')
 
@@ -99,6 +92,10 @@ class ModelSolver:
         return self._root_tolerance
 
     @property
+    def max_iter(self):
+        return self._max_iter
+
+    @property
     def last_solution(self):
         try:
             return self._last_solution
@@ -107,19 +104,26 @@ class ModelSolver:
 
 
     @root_tolerance.setter
-    def root_tolerance(self, value):
-        if type(value) != float:
-            raise ValueError('ERROR: tolerance for termination must be of type float')
-        if value <= 0:
-            raise ValueError('ERROR: tolerance for termination must be positive')
-        self._root_tolerance = value
+    def root_tolerance(self, val):
+        if isinstance(val, float) is False:
+            raise ValueError('Tolerance for termination must be of type float')
+        if val <= 0:
+            raise ValueError('Tolerance for termination must be positive')
+        self._root_tolerance = val
+
+    @max_iter.setter
+    def max_iter(self, val):
+        if isinstance(val, int) is False:
+            raise ValueError('Maximum number of iterations must be an integer')
+        if val < 0:
+            raise ValueError('Maximum number of iterations cannot be negative')
+        self._max_iter = val
 
 
     def _initialize_model(self, eqns: list, endo_vars: list):
         """
         Imports lists containing equations and endogenous variables stored as strings.
         Checks that there are no blank lines, sets everything to lowercase and returns as tuples.
-
         Args:
             eqns (list): List of equations
             endo_vars (list): List of endogenous variables
@@ -148,7 +152,6 @@ class ModelSolver:
         """
         Returns equations and list of variables with and without lag notation.
         (-)-syntax is replaced with ___LAG_NOTATION.
-
         Returns:
             1) A list of equations and variables in equations with and without lag-notation.
             2) A mapping linking variables with (-)-notation to variable names and lags.
@@ -175,7 +178,6 @@ class ModelSolver:
         """
         Takes an equation string and parses it into numerics (special care is taken to deal with scientific notation), variables, lags and operators/brackets.
         I've written my own parser in stead of using some existing because it needs to take care of then (-)-notation for lags.
-
         Args:
             equation (str): String containing equation.
         Returns:
@@ -241,7 +243,6 @@ class ModelSolver:
         """
         Generates bipartite graph connetcting equations (U) with endogenous variables (V).
         See https://en.wikipedia.org/wiki/Bipartite_graph for an explanation of what a bipartite graph is.
-
         Returns:
             Bipartite graph.
         """
@@ -268,7 +269,6 @@ class ModelSolver:
         """
         Finds a maximum bipartite match (MBM) of bipartite graph connetcting equations (U) with endogenous variables (V).
         See https://www.geeksforgeeks.org/maximum-bipartite-matching/ for more on MBM.
-
         Returns:
             Dictionary with matches (both ways, i.e. U-->V and U-->U).
         """
@@ -297,7 +297,6 @@ class ModelSolver:
         """
         Makes a directed graph showing how endogenous variables affect every other endogenous variable.
         See https://en.wikipedia.org/wiki/Directed_graph for more about directed graphs.
-
         Returns:
             Directed graph showing endogenous variables network.
         """
@@ -323,7 +322,6 @@ class ModelSolver:
         """
         Makes a condencation of directed graph of endogenous variables. Each node of condencation contains strongly connected components; this corresponds to the simulataneous model blocks.
         See https://en.wikipedia.org/wiki/Strongly_connected_component for more about strongly connected components.
-
         Returns:
             1) Condencation of directed graph of endogenous variables
             2) Mapping from condencation graph node --> variable list
@@ -348,7 +346,6 @@ class ModelSolver:
     def _gen_augmented_condenced_model_digraph(self):
         """
         Augments condencation graph with nodes and edges for exogenous variables in order to show what exogenous variables affect what strong components.
-
         Returns:
             Augmented condencation of directed graph of endogenous variables.
         """
@@ -493,32 +490,31 @@ class ModelSolver:
         output_data_array = input_data.to_numpy(dtype=np.float64, copy=True)
         var_col_index = {var: i for i, var in enumerate(input_data.columns.str.lower().to_list())}
 
+        @cache
+        def get_vars_indices(vars):
+            return tuple((*self._lag_mapping.get(x), var_col_index.get(self._lag_mapping.get(x)[0])) for x in vars)
+
         print('\tFirst period: {}, last period: {}'.format(input_data.index[self._max_lag], input_data.index[output_data_array.shape[0]-1]))
-        print('\tSolving', end=' ')
+        print('\tSolving')
 
         for period in list(range(self._max_lag, output_data_array.shape[0])):
-            print(input_data.index[period], end=' ')
+            print(input_data.index[period])
             for i, simulation_code in enumerate(self._simulation_code):
                 [obj_fun, jac, endo_vars, exog_vars, _] =  simulation_code
                 solution = self._solve_block(
                     obj_fun,
                     jac,
-                    endo_vars,
-                    exog_vars,
-                    tuple([output_data_array, var_col_index]),
+                    get_vars_indices(endo_vars),
+                    get_vars_indices(exog_vars),
+                    output_data_array,
                     period
                     )
 
-                # If solution fails then print details about block and return
-                if solution['status'] != 0:
-                    print('\nERROR: Failed to solve block {}:'.format(i))
-                    print(''.join(['Endogenous variables: ', ','.join(endo_vars)]))
-                    print(','.join([str(x) for x in self._gen_endo_vals(endo_vars, output_data_array, var_col_index, period)]))
-                    print(''.join(['Exogenous variables: ', ','.join(exog_vars)]))
-                    print(','.join([str(x) for x in self._gen_exog_vals(exog_vars, output_data_array, var_col_index, period)]))
-                if solution['status'] == 2:
-                    return
-                
+                if solution.get('status') == 2:
+                    raise ValueError('Block {} did not converge'.format(i))
+                if solution.get('status') ==1:
+                    print('Maximum number of iterations reached for block {} in {}'.format(i, input_data.index[period]))
+
                 output_data_array[period, [var_col_index.get(x) for x in endo_vars]] = solution['x']
 
         print('\nFinished')
@@ -528,76 +524,45 @@ class ModelSolver:
         return self._last_solution
 
 
-    def _solve_block(self, obj_fun, jac, endo_vars: tuple, exog_vars: tuple, output_data_names: tuple, period: int):
+    def _solve_block(self, obj_fun, jac, endo: tuple, exog: tuple, output_data_array: np.array, period: int):
         """
         TBA
         """
 
-        output_data, var_col_index = output_data_names
+        (endo_vars_names, endo_vars_lags, endo_vars_cols) = (x[0] for x in endo), np.array([x[1] for x in endo]), np.array([x[2] for x in endo])
+        (exog_vars_names, exog_vars_lags, exog_vars_cols) = (x[0] for x in exog), np.array([x[1] for x in exog]), np.array([x[2] for x in exog])
+
         solution = self._newton_raphson(
             obj_fun,
-            self._gen_endo_vals(endo_vars, output_data, var_col_index, period),
-            args = self._gen_exog_vals(exog_vars, output_data, var_col_index, period),
+            self._get_vals(output_data_array, endo_vars_cols, endo_vars_lags, period),
+            args = tuple(self._get_vals(output_data_array, exog_vars_cols, exog_vars_lags, period)),
+            jac = jac,
             tol = self._root_tolerance,
-            jac = jac
+            maxiter=self._max_iter
             )
+        
+        if solution['status'] == 2:
+            print(*tuple(endo_vars_names), sep=' ')
+            print(*self._get_vals(output_data_array, endo_vars_cols, endo_vars_lags, period), sep=' ')
+            print(*tuple(exog_vars_names), sep=' ')
+            print(*self._get_vals(output_data_array, exog_vars_cols, exog_vars_lags, period), sep=' ')
 
         return solution
 
 
-    def _gen_exog_vals(self, exog_vars: list, data: np.array, var_col_index: dict, period: int):
-        """
-        TBA
-        """
-
-        exog_var_vals = []
-        for exog_var in exog_vars:
-            exog_var_name, lag = self._lag_mapping.get(exog_var)
-            exog_var_vals += self._fetch_cell(data, var_col_index.get(exog_var_name), period-lag),
-
-        return tuple(exog_var_vals)
-
-
-    def _gen_endo_vals(self, endo_vars: list, data: np.array, var_col_index: dict, period: int):
-        """
-        TBA
-        """
-
-        endo_var_vals = []
-        for endo_var in endo_vars:
-            endo_var_vals += self._fetch_cell(data, var_col_index.get(endo_var), period),
-
-        return np.array(endo_var_vals, dtype=np.float64)
+    @staticmethod
+    def _get_vals(array: np.array, cols: np.array, lags: np.array, time: int):
+        vals = np.array([], dtype=np.float64)
+        for col, lag in zip(cols, lags):
+            vals = np.append(vals, array[time-lag, col])
+        return vals
 
 
     @staticmethod
-    def _fetch_cell(array, col, row):
-        return array[row, col]
-
-
-    @staticmethod
-    def _newton_raphson(f, init, **kwargs):
+    def _newton_raphson(f, init, args=None, jac=None, tol=None, maxiter=None):
         """
         TBA
         """
-
-        if 'args' in kwargs:
-            args = kwargs['args']
-        else:
-            args = ()
-        if 'jac' in kwargs:
-            jac = kwargs['jac']
-        else:
-            print('ERROR: Newton-Raphson requires symbolic Jacobian matrix')
-            return {'x': np.array(init), 'fun': np.array(f(init, *args)), 'success': False}
-        if 'tol' in kwargs:
-            tol = kwargs['tol']
-        else:
-            tol = 1e-10
-        if 'maxiter' in kwargs:
-            maxiter = kwargs['maxiter']
-        else:
-            maxiter = 10
 
         success = True
         status = 0
@@ -628,12 +593,10 @@ class ModelSolver:
         """
         Draws a directed graph of block in which variable is along with max number of ancestors and descendants.
         Opens graph in browser.
-
         Args:
             variable (str): Variable who's block should be drawn
             max_ancestor_generations (int): Maximum number of anscestor blocks
             max_descentant_generations (int): Maximum number of descendant blocks
-
         Returns:
             None
         """
