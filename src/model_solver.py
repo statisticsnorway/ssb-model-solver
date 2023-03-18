@@ -11,7 +11,7 @@ from symengine import var, Matrix, Lambdify
 import matplotlib.pyplot as plt
 from collections import Counter
 from functools import cache
-from src.data_fetcher_njit import gen_endo_vars_vals, gen_exog_vars_vals
+from numba import njit
 
 
 class ModelSolver:
@@ -498,7 +498,7 @@ class ModelSolver:
         print('\tSolving')
 
         for period in list(range(self._max_lag, output_data_array.shape[0])):
-            print(input_data.index[period])
+            print('\t', input_data.index[period])
             for i, simulation_code in enumerate(self._simulation_code):
                 [obj_fun, jac, endo_vars, exog_vars, _] =  simulation_code
                 solution = self._solve_block(
@@ -550,12 +550,20 @@ class ModelSolver:
         return solution
 
 
+    def _get_vals(self, array: np.array, cols: np.array, lags: np.array, time: int):
+        if cols.shape[0] == 0:
+            return np.array([], np.float64)
+        else:
+            return self._get_vals_njit(array, cols, lags, time) 
+
+
     @staticmethod
-    def _get_vals(array: np.array, cols: np.array, lags: np.array, time: int):
-        vals = np.array([], dtype=np.float64)
+    @njit
+    def _get_vals_njit(array: np.array, cols: np.array, lags: np.array, time: int):
+        vals = np.array([0.0], dtype=np.float64)
         for col, lag in zip(cols, lags):
             vals = np.append(vals, array[time-lag, col])
-        return vals
+        return vals[1:]
 
 
     @staticmethod
