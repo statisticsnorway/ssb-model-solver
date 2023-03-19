@@ -351,7 +351,7 @@ class ModelSolver:
 
             block_exog_vars.difference_update(set(block_endo_vars))
             sim_code[i+1] = (*self._gen_obj_fun_and_jac(tuple(block_eqns_lags), tuple(block_endo_vars), tuple(block_exog_vars)),
-                           tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_lags))
+                             tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_lags))
             blocks[i+1] = (tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_orig))
 
         return sim_code, blocks
