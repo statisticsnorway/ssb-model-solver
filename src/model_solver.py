@@ -343,9 +343,21 @@ class ModelSolver:
                 block_exog_vars.update([val for key, val in eqns_analyzed[2].items() if self._lag_notation not in key])
 
             block_exog_vars.difference_update(set(block_endo_vars))
-            sim_code[i+1] = (*self._gen_def_or_obj_fun_and_jac(tuple(block_eqns_lags), tuple(block_endo_vars), tuple(block_exog_vars)),
-                             tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_lags))
-            blocks[i+1] = (tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_orig))
+            (def_fun, obj_fun, jac) = self._gen_def_or_obj_fun_and_jac(tuple(block_eqns_lags), tuple(block_endo_vars), tuple(block_exog_vars))
+            sim_code[i+1] = (
+                def_fun,
+                obj_fun,
+                jac,
+                tuple(block_endo_vars),
+                tuple(block_exog_vars),
+                tuple(block_eqns_lags)
+                )
+            blocks[i+1] = (
+                tuple(block_endo_vars),
+                tuple(block_exog_vars),
+                tuple(block_eqns_orig),
+                True if def_fun else False
+                )
 
         return sim_code, blocks
 
@@ -400,9 +412,9 @@ class ModelSolver:
             print('{} is not endogenous in model'.format(endo_var))
 
 
-    def show_model_info(self):
+    def describe(self):
         """
-        Shows model info, that is number of equations, number of simultaneous blocks and how many equations are in each block
+        Describes model, that is number of equations, number of simultaneous blocks and how many equations are in each block
         """
 
         print('-'*100)
@@ -429,11 +441,12 @@ class ModelSolver:
 
         block = self._blocks.get(i)
         if block:
-            print('Endogenous ({} variables):'.format(len(block[0])))
+            print(' '.join(['Block consists of', 'a definition' if block[3] else 'an equation or a system of equations']))
+            print('\n{} endogenous variables:'.format(len(block[0])))
             print('\n'.join([' '.join(x) for x in list(self._chunks(block[0], 25))]))
-            print('\nExogenous ({} variables):'.format(len(block[1])))
+            print('\n{} exogenous variables:'.format(len(block[1])))
             print('\n'.join([' '.join(x) for x in list(self._chunks([self._var_mapping.get(x) for x in block[1]], 25))]))
-            print('\nEquations ({} equations):'.format(len(block[2])))
+            print('\n{} equations:'.format(len(block[2])))
             print('\n'.join(block[2]))
         else:
             print('Block {} is not in model'.format(block))
