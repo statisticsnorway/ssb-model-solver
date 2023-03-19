@@ -98,6 +98,7 @@ class ModelSolver:
     @property
     def blocks(self):
         #return tuple(tuple([endo_vars, tuple(self._var_mapping.get(x)[2] for x in exog_vars), eqns]) for endo_vars, exog_vars, eqns in self._blocks)
+        pass
 
     @property
     def root_tolerance(self):
