@@ -440,7 +440,7 @@ class ModelSolver:
             print('Block {} is not in model'.format(block))
 
 
-    def solve_model(self, input_data: pd.DataFrame):
+    def solve_model(self, input_data: pd.DataFrame, jit=True):
         """
         Solves the model for a given DataFrame
         """
@@ -482,7 +482,8 @@ class ModelSolver:
                     get_var_info(endo_vars),
                     get_var_info(exog_vars),
                     output_array,
-                    period
+                    period,
+                    jit=jit
                     )
 
                 if solution.get('status') == 2:
@@ -501,14 +502,14 @@ class ModelSolver:
 
 
     # Solves one block of the model for a given time period
-    def _solve_block(self, obj_fun, jac, endo_vars_info: tuple, exog_vars_info: tuple, output_array: np.array, period: int):
+    def _solve_block(self, obj_fun, jac, endo_vars_info: tuple, exog_vars_info: tuple, output_array: np.array, period: int, jit: bool):
         endo_vars_names, endo_vars_lags, endo_vars_cols, = endo_vars_info
         exog_vars_names, exog_vars_lags, exog_vars_cols, = exog_vars_info
 
         solution = self._newton_raphson(
             obj_fun,
-            self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period),
-            args = tuple(self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period)),
+            self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period, jit),
+            args = tuple(self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period, jit)),
             jac = jac,
             tol = self._root_tolerance,
             maxiter=self._max_iter
@@ -525,22 +526,35 @@ class ModelSolver:
 
     # Gets values from DataFrame via array view for speed
     # If shape of request > 0 then the request is sent to njit'ed method for speed
-    def _get_vals(self, array: np.array, cols: np.array, lags: np.array, period: int):
+    def _get_vals(self, array: np.array, cols: np.array, lags: np.array, period: int, jit: bool):
         if cols.shape[0] == 0:
             return np.array([], np.float64)
         else:
-            return self._get_vals_njit(array, cols, lags, period) 
+            if jit:
+                return self._get_vals_jit(array, cols, lags, period)
+            else:
+                return self._get_vals_nojit(array, cols, lags, period)
 
 
     # Gets values from DataFrame via array view
     # Some weird stuff had to be implemented for njit to stop complaining
     @staticmethod
     @njit
-    def _get_vals_njit(array: np.array, cols: np.array, lags: np.array, period: int):
+    def _get_vals_jit(array: np.array, cols: np.array, lags: np.array, period: int):
         vals = np.array([0.0], dtype=np.float64)
         for col, lag in zip(cols, lags):
             vals = np.append(vals, array[period-lag, col])
         return vals[1:]
+
+
+    # Gets values from DataFrame via array view
+    # Runs if user sets jit to False
+    @staticmethod
+    def _get_vals_nojit(array: np.array, cols: np.array, lags: np.array, period: int):
+        vals = np.array([], dtype=np.float64)
+        for col, lag in zip(cols, lags):
+            vals = np.append(vals, array[period-lag, col])
+        return vals
 
 
     # Solves root finding problem using simple Newton-Raphson method
