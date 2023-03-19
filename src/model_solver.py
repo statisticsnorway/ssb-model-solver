@@ -394,7 +394,7 @@ class ModelSolver:
         """
 
         try:
-            return [endo_var in x[0] for x in self._blocks].index(True)
+            return [key for key, val in self._blocks.items() if endo_var in val[0]][0]
         except ValueError:
             return
 
