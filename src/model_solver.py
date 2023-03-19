@@ -492,7 +492,12 @@ class ModelSolver:
 
         @cache
         def get_vars_indices(vars):
-            return tuple((*self._lag_mapping.get(x), var_col_index.get(self._lag_mapping.get(x)[0])) for x in vars)
+            if not vars:
+                return (tuple([]), np.array([], dtype=int), np.array([], dtype=int))
+            # Stole solution from: https://stackoverflow.com/questions/21444338/transpose-nested-list-in-python
+            names, lags = tuple(map(list, zip(*[self._lag_mapping.get(x) for x in vars])))
+            cols = tuple(var_col_index.get(x) for x in names)
+            return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
 
         print('\tFirst period: {}, last period: {}'.format(input_data.index[self._max_lag], input_data.index[output_data_array.shape[0]-1]))
         print('\tSolving')
@@ -529,8 +534,8 @@ class ModelSolver:
         TBA
         """
 
-        (endo_vars_names, endo_vars_lags, endo_vars_cols) = (x[0] for x in endo), np.array([x[1] for x in endo]), np.array([x[2] for x in endo])
-        (exog_vars_names, exog_vars_lags, exog_vars_cols) = (x[0] for x in exog), np.array([x[1] for x in exog]), np.array([x[2] for x in exog])
+        (endo_vars_names, endo_vars_lags, endo_vars_cols) = endo
+        (exog_vars_names, exog_vars_lags, exog_vars_cols) = exog
 
         solution = self._newton_raphson(
             obj_fun,
