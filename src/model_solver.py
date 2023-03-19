@@ -466,9 +466,9 @@ class ModelSolver:
         print(''.join(['\t|', ' '*(last_period-first_period+1), '|']))
         print('\t ', end='')
 
-        for i, period in enumerate(periods):
+        for period in periods:
             print('.', end='')
-            for j, simulation_code in enumerate(self._simulation_code):
+            for i, simulation_code in enumerate(self._simulation_code):
                 (obj_fun, jac, endo_vars, exog_vars, _) = simulation_code
                 solution = self._solve_block(
                     obj_fun,
@@ -480,9 +480,9 @@ class ModelSolver:
                     )
 
                 if solution.get('status') == 2:
-                    raise ValueError('Block {} did not converge'.format(j))
+                    raise ValueError('Block {} did not converge'.format(i))
                 if solution.get('status') == 1:
-                    print('Maximum number of iterations reached for block {} in {}'.format(j, input_data.index[period]))
+                    print('Maximum number of iterations reached for block {} in {}'.format(i, input_data.index[period]))
 
                 output_array[period, [var_col_index.get(x) for x in endo_vars]] = solution['x']
 
