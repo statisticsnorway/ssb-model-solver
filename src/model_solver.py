@@ -76,7 +76,7 @@ class ModelSolver:
         self._augmented_condenced_model_digraph = self._gen_augmented_condenced_model_digraph()
 
         # Generating everything needed to simulate model
-        self._simulation_code, self._blocks = self._gen_sim_code_and_blocks()
+        self._sim_code, self._blocks = self._gen_sim_code_and_blocks()
 
         print('Finished')
 
@@ -336,21 +336,21 @@ class ModelSolver:
 
         print('\t* Generating simulation code (i.e. block-wise symbolic objective function, symbolic Jacobian matrix and lists of endogenous and exogenous variables)')
 
-        sim_code, blocks = [], []
-        for node in reversed(tuple(self._condenced_model_digraph.nodes())):
+        sim_code, blocks = {}, {}
+        for i, node in enumerate(reversed(tuple(self._condenced_model_digraph.nodes()))):
             block_endo_vars, block_eqns_orig, block_eqns_lags, block_exog_vars = [], [], [], set()
             for member in self._condenced_model_digraph.nodes[node]['members']:
-                i = self._eqns_endo_vars_match[member]
-                eqns_analyzed = self._eqns_analyzed[i]
+                j = self._eqns_endo_vars_match[member]
+                eqns_analyzed = self._eqns_analyzed[j]
                 block_endo_vars += member,
                 block_eqns_orig += eqns_analyzed[0],
                 block_eqns_lags += eqns_analyzed[1],
                 block_exog_vars.update([val for key, val in eqns_analyzed[2].items() if self._lag_notation not in key])
 
             block_exog_vars.difference_update(set(block_endo_vars))
-            sim_code += (*self._gen_obj_fun_and_jac(tuple(block_eqns_lags), tuple(block_endo_vars), tuple(block_exog_vars)),
-                         tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_lags)),
-            blocks += (tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_orig)),
+            sim_code[i] = (*self._gen_obj_fun_and_jac(tuple(block_eqns_lags), tuple(block_endo_vars), tuple(block_exog_vars)),
+                           tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_lags))
+            blocks[i] = (tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_orig))
 
         return sim_code, blocks
 
@@ -406,7 +406,7 @@ class ModelSolver:
 
         print('*'*100)
         print('Model consists of {} equations in {} blocks\n'.format(len(self._eqns), len(self._blocks)))
-        for key, val in Counter(sorted([len(x[2]) for x in self._blocks])).items():
+        for key, val in self._blocks.items():
             print('{} blocks have {} equations'.format(val, key))
         print('*'*100)
 
@@ -416,9 +416,9 @@ class ModelSolver:
         Prints endogenous and exogenous variables and equations for every block in the model
         """
 
-        for i, _ in enumerate(self._blocks):
-            print(' '.join(['*'*50, 'Block', str(i), '*'*50, '\n']))
-            self.show_block(i)
+        for key, _ in self._blocks.items():
+            print(' '.join(['*'*50, 'Block', str(key), '*'*50, '\n']))
+            self.show_block(key)
 
 
     def show_block(self, i):
@@ -426,7 +426,7 @@ class ModelSolver:
         Prints endogenous and exogenous variables and equations for a given block
         """
 
-        block = self._blocks[i]
+        block = self._blocks.get(i)
         print('Endogenous ({} variables):'.format(len(block[0])))
         print('\n'.join([' '.join(x) for x in list(self._chunks(block[0], 25))]))
         print('\nExogenous ({} variables):'.format(len(block[1])))
@@ -468,8 +468,8 @@ class ModelSolver:
 
         for period in periods:
             print('.', end='')
-            for i, simulation_code in enumerate(self._simulation_code):
-                (obj_fun, jac, endo_vars, exog_vars, _) = simulation_code
+            for key, val in self._sim_code.items():
+                (obj_fun, jac, endo_vars, exog_vars, _) = val
                 solution = self._solve_block(
                     obj_fun,
                     jac,
@@ -480,9 +480,9 @@ class ModelSolver:
                     )
 
                 if solution.get('status') == 2:
-                    raise ValueError('Block {} did not converge'.format(i))
+                    raise ValueError('Block {} did not converge'.format(key))
                 if solution.get('status') == 1:
-                    print('Maximum number of iterations reached for block {} in {}'.format(i, input_data.index[period]))
+                    print('Maximum number of iterations reached for block {} in {}'.format(key, input_data.index[period]))
 
                 output_array[period, [var_col_index.get(x) for x in endo_vars]] = solution['x']
 
