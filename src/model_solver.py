@@ -17,14 +17,12 @@ from numba import njit
 class ModelSolver:
     """
     EXAMPLE OF USE USE:
-
     Let "equations" and "endogenous" be lists containing equations and endogenous variables, respectively, stored as strings. E.g.
-
+    
         equations = [
             'x+y=A',
             'x/y=B'
             ]
-
         endogenous = [
             'x',
             'y'
@@ -39,9 +37,8 @@ class ModelSolver:
     
     This reads in the equations and endogenous variables and perform block analysis and ordering and generates simulation code
     Upon completion, the model is ready to be solved subject to data (exogenous and initial values of endogenous variables) in a Pandas DataFrame
-
     Let "input_df" be a dataframe containing data on A and B and initial values for x and y. Then the model can be solved by invoking
-
+    
         solution_df = model.solve_model(input_df)
     
     Now "solution_df" is a Pandas DataFrame with exactly the same dimensions as "input_df", but where the endogenous variables are replaced by the solutions to the model
@@ -346,7 +343,7 @@ class ModelSolver:
                 block_exog_vars.update([val for key, val in eqns_analyzed[2].items() if self._lag_notation not in key])
 
             block_exog_vars.difference_update(set(block_endo_vars))
-            sim_code[i+1] = (*self._gen_obj_fun_and_jac(tuple(block_eqns_lags), tuple(block_endo_vars), tuple(block_exog_vars)),
+            sim_code[i+1] = (*self._gen_def_or_obj_fun_and_jac(tuple(block_eqns_lags), tuple(block_endo_vars), tuple(block_exog_vars)),
                              tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_lags))
             blocks[i+1] = (tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_orig))
 
@@ -355,7 +352,7 @@ class ModelSolver:
 
     # Generates symbolic objective functon and Jacobian matrix for a given strong component
     @staticmethod
-    def _gen_obj_fun_and_jac(eqns: tuple, endo_vars: tuple, exog_vars: tuple):
+    def _gen_def_or_obj_fun_and_jac(eqns: tuple, endo_vars: tuple, exog_vars: tuple):
         endo_sym, exog_sym, obj_fun = [], [], []
         for endo_var in endo_vars:
             var(endo_var)
@@ -365,6 +362,12 @@ class ModelSolver:
             exog_sym += eval(exog_var),
         for eqn in eqns:
             lhs, rhs = eqn.split('=')
+            if len(eqns) == 1 and endo_var == lhs:
+                if len(exog_vars) == 0:
+                    return lambda _: eval(rhs.strip().strip('+')), None, None
+                def_fun = eval(rhs.strip().strip('+'))
+                return Lambdify([exog_sym], def_fun), None, None
+
             obj_fun_row = eval('-'.join([''.join(['(', lhs.strip().strip('+'), ')']), ''.join(['(', rhs.strip().strip('+'), ')'])]))
             obj_fun += obj_fun_row,
 
@@ -376,7 +379,7 @@ class ModelSolver:
         output_obj_fun = lambda val_list, *args: obj_fun_lambdify(*val_list, *args)
         output_jac = lambda val_list, *args: jac_lambdify(*val_list, *args)
 
-        return output_obj_fun, output_jac
+        return None, output_obj_fun, output_jac
 
 
     def switch_endo_var(self, old_endo, new_endo):
@@ -471,8 +474,9 @@ class ModelSolver:
         for period in periods:
             print('.', end='')
             for key, val in self._sim_code.items():
-                (obj_fun, jac, endo_vars, exog_vars, _) = val
+                (def_fun, obj_fun, jac, endo_vars, exog_vars, _) = val
                 solution = self._solve_block(
+                    def_fun,
                     obj_fun,
                     jac,
                     get_var_info(endo_vars),
@@ -498,24 +502,31 @@ class ModelSolver:
 
 
     # Solves one block of the model for a given time period
-    def _solve_block(self, obj_fun, jac, endo_vars_info: tuple, exog_vars_info: tuple, output_array: np.array, period: int, jit: bool):
+    def _solve_block(self, def_fun, obj_fun, jac, endo_vars_info: tuple, exog_vars_info: tuple, output_array: np.array, period: int, jit: bool):
         endo_vars_names, endo_vars_lags, endo_vars_cols, = endo_vars_info
         exog_vars_names, exog_vars_lags, exog_vars_cols, = exog_vars_info
 
-        solution = self._newton_raphson(
-            obj_fun,
-            self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period, jit),
-            args = tuple(self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period, jit)),
-            jac = jac,
-            tol = self._root_tolerance,
-            maxiter=self._max_iter
-            )
-        
-        if solution.get('status') == 2:
-            print(*endo_vars_names, sep=' ')
-            print(*self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period), sep=' ')
-            print(*exog_vars_names, sep=' ')
-            print(*self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period), sep=' ')
+        # If block contains a definition this is calculated
+        # Othwewise the objective function is sent to Newton-Raphson
+        if def_fun:
+            solution = {}
+            solution['x'] = def_fun(tuple(self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period, jit)))
+            solution['status'] = 0
+        else:
+            solution = self._newton_raphson(
+                obj_fun,
+                self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period, jit),
+                args = tuple(self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period, jit)),
+                jac = jac,
+                tol = self._root_tolerance,
+                maxiter=self._max_iter
+                )
+            
+            if solution.get('status') == 2:
+                print(*endo_vars_names, sep=' ')
+                print(*self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period), sep=' ')
+                print(*exog_vars_names, sep=' ')
+                print(*self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period), sep=' ')
 
         return solution
 
