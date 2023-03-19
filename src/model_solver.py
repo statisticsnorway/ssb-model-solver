@@ -58,6 +58,7 @@ class ModelSolver:
         self._root_tolerance = 1e-7
         self._max_iter = 10
 
+        print('-'*100)
         print('Initializing model...')
 
         # Model equations and endogenous variables are checked and stored as immutable tuples (as opposed to mutable lists)
@@ -79,6 +80,7 @@ class ModelSolver:
         self._sim_code, self._blocks = self._gen_sim_code_and_blocks()
 
         print('Finished')
+        print('-'*100)
 
 
     @property
@@ -392,11 +394,11 @@ class ModelSolver:
         """
         Finds what block solves the given engoenous variable
         """
-
-        try:
-            return [key for key, val in self._blocks.items() if endo_var in val[0]][0]
-        except ValueError:
-            return
+        block = [key for key, val in self._blocks.items() if endo_var in val[0]]
+        if block:
+            return block[0]
+        else:
+            print('{} is not endogenous in model'.format(endo_var))
 
 
     def show_model_info(self):
@@ -404,11 +406,11 @@ class ModelSolver:
         Shows model info, that is number of equations, number of simultaneous blocks and how many equations are in each block
         """
 
-        print('*'*100)
+        print('-'*100)
         print('Model consists of {} equations in {} blocks\n'.format(len(self._eqns), len(self._blocks)))
-        for key, val in self._blocks.items():
+        for key, val in Counter(sorted([len(val[2]) for key, val in self._blocks.items()])).items():
             print('{} blocks have {} equations'.format(val, key))
-        print('*'*100)
+        print('-'*100)
 
 
     def show_blocks(self):
@@ -417,7 +419,7 @@ class ModelSolver:
         """
 
         for key, _ in self._blocks.items():
-            print(' '.join(['*'*50, 'Block', str(key), '*'*50, '\n']))
+            print(' '.join(['-'*50, 'Block', str(key), '-'*50]))
             self.show_block(key)
 
 
@@ -427,12 +429,15 @@ class ModelSolver:
         """
 
         block = self._blocks.get(i)
-        print('Endogenous ({} variables):'.format(len(block[0])))
-        print('\n'.join([' '.join(x) for x in list(self._chunks(block[0], 25))]))
-        print('\nExogenous ({} variables):'.format(len(block[1])))
-        print('\n'.join([' '.join(x) for x in list(self._chunks([self._var_mapping.get(x) for x in block[1]], 25))]))
-        print('\nEquations ({} equations):'.format(len(block[2])))
-        print('\n'.join(block[2]))
+        if block:
+            print('Endogenous ({} variables):'.format(len(block[0])))
+            print('\n'.join([' '.join(x) for x in list(self._chunks(block[0], 25))]))
+            print('\nExogenous ({} variables):'.format(len(block[1])))
+            print('\n'.join([' '.join(x) for x in list(self._chunks([self._var_mapping.get(x) for x in block[1]], 25))]))
+            print('\nEquations ({} equations):'.format(len(block[2])))
+            print('\n'.join(block[2]))
+        else:
+            print('Block {} is not in model'.format(block))
 
 
     def solve_model(self, input_data: pd.DataFrame):
@@ -443,6 +448,7 @@ class ModelSolver:
         if self._some_error:
             return
 
+        print('-'*100)
         print('Solving model...')
 
         output_array = input_data.to_numpy(dtype=np.float64, copy=True)
@@ -487,6 +493,7 @@ class ModelSolver:
                 output_array[period, [var_col_index.get(x) for x in endo_vars]] = solution['x']
 
         print('\nFinished')
+        print('-'*100)
 
         self._last_solution = pd.DataFrame(output_array, columns=input_data.columns, index=input_data.index)
 
