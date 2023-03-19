@@ -382,6 +382,9 @@ class ModelSolver:
 
 
     def switch_endo_var(self, old_endo, new_endo):
+        """
+        This method will allow the user to switch endogenos and exogenous variables
+        """
         pass
 
 
@@ -459,10 +462,14 @@ class ModelSolver:
         print('\tFirst period: {}, last period: {}'.format(input_data.index[self._max_lag], input_data.index[output_array.shape[0]-1]))
         print('\tSolving', end=' ')
 
-        for period in list(range(self._max_lag, output_array.shape[0])):
-            print(input_data.index[period], end=' ')
-            for i, simulation_code in enumerate(self._simulation_code):
-                (obj_fun, jac, endo_vars, exog_vars, _) =  simulation_code
+        periods = list(range(self._max_lag, output_array.shape[0]))
+        n_periods = len(periods)
+        for i, period in enumerate(periods):
+            percent = 100*i/(n_periods-1)
+            if not percent % 10:
+                print('{} %'.format(int(percent)), end=' ')
+            for j, simulation_code in enumerate(self._simulation_code):
+                (obj_fun, jac, endo_vars, exog_vars, _) = simulation_code
                 solution = self._solve_block(
                     obj_fun,
                     jac,
@@ -473,9 +480,9 @@ class ModelSolver:
                     )
 
                 if solution.get('status') == 2:
-                    raise ValueError('Block {} did not converge'.format(i))
-                if solution.get('status') ==1:
-                    print('Maximum number of iterations reached for block {} in {}'.format(i, input_data.index[period]))
+                    raise ValueError('Block {} did not converge'.format(j))
+                if solution.get('status') == 1:
+                    print('Maximum number of iterations reached for block {} in {}'.format(j, input_data.index[period]))
 
                 output_array[period, [var_col_index.get(x) for x in endo_vars]] = solution['x']
 
@@ -487,14 +494,14 @@ class ModelSolver:
 
 
     # Solves one block of the model for a given time period
-    def _solve_block(self, obj_fun, jac, endo_vars_info: tuple, exog_vars_info: tuple, output_array: np.array, time: int):
+    def _solve_block(self, obj_fun, jac, endo_vars_info: tuple, exog_vars_info: tuple, output_array: np.array, period: int):
         endo_vars_names, endo_vars_lags, endo_vars_cols, = endo_vars_info
         exog_vars_names, exog_vars_lags, exog_vars_cols, = exog_vars_info
 
         solution = self._newton_raphson(
             obj_fun,
-            self._get_vals(output_array, endo_vars_cols, endo_vars_lags, time),
-            args = tuple(self._get_vals(output_array, exog_vars_cols, exog_vars_lags, time)),
+            self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period),
+            args = tuple(self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period)),
             jac = jac,
             tol = self._root_tolerance,
             maxiter=self._max_iter
@@ -502,30 +509,30 @@ class ModelSolver:
         
         if solution.get('status') == 2:
             print(*endo_vars_names, sep=' ')
-            print(*self._get_vals(output_array, endo_vars_cols, endo_vars_lags, time), sep=' ')
+            print(*self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period), sep=' ')
             print(*exog_vars_names, sep=' ')
-            print(*self._get_vals(output_array, exog_vars_cols, exog_vars_lags, time), sep=' ')
+            print(*self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period), sep=' ')
 
         return solution
 
 
     # Gets values from DataFrame via array view for speed
     # If shape of request > 0 then the request is sent to njit'ed method for speed
-    def _get_vals(self, array: np.array, cols: np.array, lags: np.array, time: int):
+    def _get_vals(self, array: np.array, cols: np.array, lags: np.array, period: int):
         if cols.shape[0] == 0:
             return np.array([], np.float64)
         else:
-            return self._get_vals_njit(array, cols, lags, time) 
+            return self._get_vals_njit(array, cols, lags, period) 
 
 
     # Gets values from DataFrame via array view
     # Some weird stuff had to be implemented for njit to stop complaining
     @staticmethod
     @njit
-    def _get_vals_njit(array: np.array, cols: np.array, lags: np.array, time: int):
+    def _get_vals_njit(array: np.array, cols: np.array, lags: np.array, period: int):
         vals = np.array([0.0], dtype=np.float64)
         for col, lag in zip(cols, lags):
-            vals = np.append(vals, array[time-lag, col])
+            vals = np.append(vals, array[period-lag, col])
         return vals[1:]
 
 
