@@ -487,31 +487,33 @@ class ModelSolver:
 
         print('Solving model...')
 
-        output_data_array = input_data.to_numpy(dtype=np.float64, copy=True)
+        output_array = input_data.to_numpy(dtype=np.float64, copy=True)
         var_col_index = {var: i for i, var in enumerate(input_data.columns.str.lower().to_list())}
 
+        # Function that gets name, column index and lag for variables
+        # Function uses cache since it's calle repeatedly
         @cache
-        def get_vars_indices(vars):
+        def get_var_info(vars):
             if not vars:
                 return (tuple([]), np.array([], dtype=int), np.array([], dtype=int))
-            # Stole solution from: https://stackoverflow.com/questions/21444338/transpose-nested-list-in-python
+            # Stole zip-solution from: https://stackoverflow.com/questions/21444338/transpose-nested-list-in-python
             names, lags = tuple(map(list, zip(*[self._lag_mapping.get(x) for x in vars])))
             cols = tuple(var_col_index.get(x) for x in names)
             return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
 
-        print('\tFirst period: {}, last period: {}'.format(input_data.index[self._max_lag], input_data.index[output_data_array.shape[0]-1]))
-        print('\tSolving')
+        print('\tFirst period: {}, last period: {}'.format(input_data.index[self._max_lag], input_data.index[output_array.shape[0]-1]))
+        print('\tSolving', end=' ')
 
-        for period in list(range(self._max_lag, output_data_array.shape[0])):
-            print('\t', input_data.index[period])
+        for period in list(range(self._max_lag, output_array.shape[0])):
+            print(input_data.index[period], end=' ')
             for i, simulation_code in enumerate(self._simulation_code):
-                [obj_fun, jac, endo_vars, exog_vars, _] =  simulation_code
+                (obj_fun, jac, endo_vars, exog_vars, _) =  simulation_code
                 solution = self._solve_block(
                     obj_fun,
                     jac,
-                    get_vars_indices(endo_vars),
-                    get_vars_indices(exog_vars),
-                    output_data_array,
+                    get_var_info(endo_vars),
+                    get_var_info(exog_vars),
+                    output_array,
                     period
                     )
 
@@ -520,37 +522,37 @@ class ModelSolver:
                 if solution.get('status') ==1:
                     print('Maximum number of iterations reached for block {} in {}'.format(i, input_data.index[period]))
 
-                output_data_array[period, [var_col_index.get(x) for x in endo_vars]] = solution['x']
+                output_array[period, [var_col_index.get(x) for x in endo_vars]] = solution['x']
 
         print('\nFinished')
 
-        self._last_solution = pd.DataFrame(output_data_array, columns=input_data.columns, index=input_data.index)
+        self._last_solution = pd.DataFrame(output_array, columns=input_data.columns, index=input_data.index)
 
         return self._last_solution
 
 
-    def _solve_block(self, obj_fun, jac, endo: tuple, exog: tuple, output_data_array: np.array, period: int):
+    def _solve_block(self, obj_fun, jac, endo_vars_info: tuple, exog_vars_info: tuple, output_array: np.array, time: int):
         """
         TBA
         """
 
-        (endo_vars_names, endo_vars_lags, endo_vars_cols) = endo
-        (exog_vars_names, exog_vars_lags, exog_vars_cols) = exog
+        (endo_vars_names, endo_vars_lags, endo_vars_cols) = endo_vars_info
+        (exog_vars_names, exog_vars_lags, exog_vars_cols) = exog_vars_info
 
         solution = self._newton_raphson(
             obj_fun,
-            self._get_vals(output_data_array, endo_vars_cols, endo_vars_lags, period),
-            args = tuple(self._get_vals(output_data_array, exog_vars_cols, exog_vars_lags, period)),
+            self._get_vals(output_array, endo_vars_cols, endo_vars_lags, time),
+            args = tuple(self._get_vals(output_array, exog_vars_cols, exog_vars_lags, time)),
             jac = jac,
             tol = self._root_tolerance,
             maxiter=self._max_iter
             )
         
-        if solution['status'] == 2:
-            print(*tuple(endo_vars_names), sep=' ')
-            print(*self._get_vals(output_data_array, endo_vars_cols, endo_vars_lags, period), sep=' ')
-            print(*tuple(exog_vars_names), sep=' ')
-            print(*self._get_vals(output_data_array, exog_vars_cols, exog_vars_lags, period), sep=' ')
+        if solution.get('status') == 2:
+            print(*endo_vars_names, sep=' ')
+            print(*self._get_vals(output_array, endo_vars_cols, endo_vars_lags, time), sep=' ')
+            print(*exog_vars_names, sep=' ')
+            print(*self._get_vals(output_array, exog_vars_cols, exog_vars_lags, time), sep=' ')
 
         return solution
 
@@ -562,6 +564,10 @@ class ModelSolver:
             return self._get_vals_njit(array, cols, lags, time) 
 
 
+    # Method that gets data from array
+    # Method uses just in time compilation
+    # njit crashes if vals is not populated from the onset, therefore the 0.0 in 0
+    # Method returns everything except the 0.0 in 0
     @staticmethod
     @njit
     def _get_vals_njit(array: np.array, cols: np.array, lags: np.array, time: int):
