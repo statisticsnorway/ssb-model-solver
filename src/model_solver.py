@@ -459,15 +459,15 @@ class ModelSolver:
             cols = tuple(var_col_index.get(x) for x in names)
             return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
 
-        print('\tFirst period: {}, last period: {}'.format(input_data.index[self._max_lag], input_data.index[output_array.shape[0]-1]))
-        print('\tSolving', end=' ')
+        first_period, last_period = self._max_lag, output_array.shape[0]-1
+        periods = range(first_period, last_period+1)
+        print('\tFirst period: {}, last period: {}'.format(input_data.index[first_period], input_data.index[last_period]))
+        print('\tSolving')
+        print(''.join(['\t|', ' '*(last_period-first_period+1), '|']))
+        print('\t ', end='')
 
-        periods = list(range(self._max_lag, output_array.shape[0]))
-        n_periods = len(periods)
         for i, period in enumerate(periods):
-            percent = 100*i/(n_periods-1)
-            if not percent % 10:
-                print('{} %'.format(int(percent)), end=' ')
+            print('.', end='')
             for j, simulation_code in enumerate(self._simulation_code):
                 (obj_fun, jac, endo_vars, exog_vars, _) = simulation_code
                 solution = self._solve_block(
