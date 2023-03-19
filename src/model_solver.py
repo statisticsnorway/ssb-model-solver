@@ -348,9 +348,9 @@ class ModelSolver:
                 block_exog_vars.update([val for key, val in eqns_analyzed[2].items() if self._lag_notation not in key])
 
             block_exog_vars.difference_update(set(block_endo_vars))
-            sim_code[i] = (*self._gen_obj_fun_and_jac(tuple(block_eqns_lags), tuple(block_endo_vars), tuple(block_exog_vars)),
+            sim_code[i+1] = (*self._gen_obj_fun_and_jac(tuple(block_eqns_lags), tuple(block_endo_vars), tuple(block_exog_vars)),
                            tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_lags))
-            blocks[i] = (tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_orig))
+            blocks[i+1] = (tuple(block_endo_vars), tuple(block_exog_vars), tuple(block_eqns_orig))
 
         return sim_code, blocks
 
@@ -616,7 +616,7 @@ class ModelSolver:
                 node_color = 'silver'
             graph_to_plot.add_node(node, label=node_label, title=node_title, shape='circle', size=node_size, color=node_color)
             if node in self.condenced_model_node_varlist_mapping:
-                mapping[node] =  ':\n'.join([' '.join(['Block', str(len(self._blocks)-node-1)]),
+                mapping[node] =  ':\n'.join([' '.join(['Block', str(len(self._blocks)-node)]),
                                              '\n'.join(self.condenced_model_node_varlist_mapping[node]) if len(self.condenced_model_node_varlist_mapping[node]) < 5 else '...'])
             else:
                 mapping[node] = str(node)
