@@ -418,7 +418,8 @@ class ModelSolver:
         """
 
         print('-'*100)
-        print('Model consists of {} equations in {} blocks\n'.format(len(self._eqns), len(self._blocks)))
+        print('Model consists of {} equations in {} blocks'.format(len(self._eqns), len(self._blocks)))
+        print('{} of the blocks consist of simple definitions\n'.format(len([val[3] for _, val in self._blocks.items() if val[3]])))
         for key, val in Counter(sorted([len(val[2]) for key, val in self._blocks.items()])).items():
             print('{} blocks have {} equations'.format(val, key))
         print('-'*100)
