@@ -221,9 +221,7 @@ class ModelSolver:
                 if chr == ')':
                     is_lag = False
 
-        eqn_with_lag_notation=''.join(parsed_eqn_with_lag_notation)
-
-        return eqn_with_lag_notation, var_mapping, lag_mapping
+        return parsed_eqn_with_lag_notation, var_mapping, lag_mapping
 
 
     # Generates bipartite graph (bigraph) connetcting equations (nodes in U) with endogenous variables (nodes in V)
@@ -380,7 +378,7 @@ class ModelSolver:
             var(exog_var)
             exog_sym += eval(exog_var),
         for eqn in eqns:
-            lhs, rhs = eqn.split('=')
+            lhs, rhs = ''.join(eqn).split('=')
             if len(eqns) == 1 and endo_var == lhs and endo_var not in rhs:
                 if len(exog_vars) == 0:
                     return lambda _: eval(rhs.strip().strip('+')), None, None
