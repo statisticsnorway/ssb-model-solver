@@ -616,7 +616,7 @@ class ModelSolver:
         return {'x': x_i, 'fun': f_i, 'success': success, 'status': status}
 
 
-    def draw_blockwise_graph(self, variable: str, max_ancestor_generations: int, max_descentant_generations: int, max_nodes= int, in_notebook=False, html=False):
+    def draw_blockwise_graph(self, var: str, max_ancs_gens: int, max_desc_gens: int, max_nodes: int):
         """
         Draws a directed graph of block in which variable is along with max number of ancestors and descendants.
         """
@@ -624,24 +624,19 @@ class ModelSolver:
         if self._some_error:
             return
 
-        if any([variable in self._condenced_model_digraph.nodes[x]['members'] for x in self._condenced_model_digraph.nodes()]):
-            variable_node = [variable in self._condenced_model_digraph.nodes[x]['members'] for x in self._condenced_model_digraph.nodes()].index(True)
-        elif variable in self._augmented_condenced_model_digraph.nodes(): 
-            variable_node = variable
-        else:
-            raise NameError('Variable is not in model')
+        var_node = self._find_var_node(var)
 
-        ancr_nodes = nx.ancestors(self._augmented_condenced_model_digraph, variable_node)
-        desc_nodes = nx.descendants(self._augmented_condenced_model_digraph, variable_node)
+        ancs_nodes = nx.ancestors(self._augmented_condenced_model_digraph, var_node)
+        desc_nodes = nx.descendants(self._augmented_condenced_model_digraph, var_node)
 
-        max_ancr_nodes = {x for x in ancr_nodes if nx.shortest_path_length(self._augmented_condenced_model_digraph, x, variable_node) <= max_ancestor_generations}
-        max_desc_nodes = {x for x in desc_nodes if nx.shortest_path_length(self._augmented_condenced_model_digraph, variable_node, x) <= max_descentant_generations}
+        max_ancr_nodes = {x for x in ancs_nodes if nx.shortest_path_length(self._augmented_condenced_model_digraph, x, var_node) <= max_ancs_gens}
+        max_desc_nodes = {x for x in desc_nodes if nx.shortest_path_length(self._augmented_condenced_model_digraph, var_node, x) <= max_desc_gens}
 
-        subgraph = self._augmented_condenced_model_digraph.subgraph({variable_node}.union(max_ancr_nodes).union(max_desc_nodes))
+        subgraph = self._augmented_condenced_model_digraph.subgraph({var_node}.union(max_ancr_nodes).union(max_desc_nodes))
         graph_to_plot = nx.DiGraph()
 
         print(' '.join(['Graph of block containing {} with <={} generations of ancestors and <={} generations of decendants:'
-                       .format(variable, max_ancestor_generations, max_descentant_generations), str(subgraph)]))
+                       .format(var, max_ancs_gens, max_desc_gens), str(subgraph)]))
 
         # Loop over all nodes in subgraph (chosen variable, it's ancestors and decendants) and make nodes and edges in pyvis subgraph
         mapping = {}
@@ -650,7 +645,7 @@ class ModelSolver:
                 node_label = '\n'.join(self._condenced_model_node_varlist_mapping[node])\
                     if len(self._condenced_model_node_varlist_mapping[node]) < 10 else '***\nHUGE BLOCK\n***'
                 node_title = '<br>'.join(self._condenced_model_node_varlist_mapping[node])
-                if node == variable_node:
+                if node == var_node:
                     node_size = 200
                     node_color = 'red'
                 if node in max_ancr_nodes:
@@ -664,29 +659,37 @@ class ModelSolver:
                 node_title = None
                 node_size = 100
                 node_color = 'silver'
+
             graph_to_plot.add_node(node, label=node_label, title=node_title, shape='circle', size=node_size, color=node_color)
-            if node in self._condenced_model_node_varlist_mapping:
+
+            if isinstance(node, int):
                 mapping[node] =  ':\n'.join([' '.join(['Block', str(len(self._blocks)-node)]),
-                                             '\n'.join(self._condenced_model_node_varlist_mapping[node]) if len(self._condenced_model_node_varlist_mapping[node]) < 5 else '...'])
+                                            '\n'.join(self._condenced_model_node_varlist_mapping[node]) if len(self._condenced_model_node_varlist_mapping[node]) < 5 else '...'])
             else:
-                mapping[node] = str(node)
+                mapping[node] = node
 
         if graph_to_plot.number_of_nodes() > max_nodes:
             print('Graph is too big to plot')
             return
 
         graph_to_plot.add_edges_from(subgraph.edges())
-        if html:
-            net = Network('2000px', '2000px', directed=True, notebook=in_notebook)
-            net.from_nx(graph_to_plot)
-            net.repulsion(node_distance=50, central_gravity=0.01, spring_length=100, spring_strength=0.02, damping=0.5)
-            net.show('graph.html')
+
+        plt.figure(figsize=(7.5, 7.5))
+        colors = [node[1]['color'] for node in graph_to_plot.nodes(data=True)]
+        layout = nx.shell_layout(graph_to_plot)
+        nx.draw(graph_to_plot, with_labels=True, labels=mapping, pos=layout, node_size=5000, node_color=colors, font_size=9, font_color='white')
+        plt.plot()
+
+
+    # Returns the node in  which var is endogenous
+    def _find_var_node(self, var):
+        if any([var in self._condenced_model_digraph.nodes[x]['members'] for x in self._condenced_model_digraph.nodes()]):
+            var_node = [var in self._condenced_model_digraph.nodes[x]['members'] for x in self._condenced_model_digraph.nodes()].index(True)
+        elif var in self._augmented_condenced_model_digraph.nodes(): 
+            var_node = var
         else:
-            plt.figure(figsize=(7.5, 7.5))
-            colors = [node[1]['color'] for node in graph_to_plot.nodes(data=True)]
-            layout = nx.shell_layout(graph_to_plot)
-            nx.draw(graph_to_plot, with_labels=True, labels=mapping, pos=layout, node_size=5000, node_color=colors, font_size=9, font_color='white')
-            plt.plot()
+            raise NameError('Variable is not in model')
+        return var_node
 
 
     # Stole solution from https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
