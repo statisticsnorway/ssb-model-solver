@@ -541,7 +541,7 @@ class ModelSolver:
                 tol = self._root_tolerance,
                 maxiter=self._max_iter
                 )
-            
+
             if solution.get('status') == 2:
                 print(*endo_vars_names, sep=' ')
                 print(*self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period, False), sep=' ')
@@ -630,10 +630,8 @@ class ModelSolver:
         ancr_nodes = nx.ancestors(self._augmented_condenced_model_digraph, variable_node)
         desc_nodes = nx.descendants(self._augmented_condenced_model_digraph, variable_node)
 
-        max_ancr_nodes = {x for x in ancr_nodes if\
-            nx.shortest_path_length(self._augmented_condenced_model_digraph, x, variable_node) <= max_ancestor_generations}
-        max_desc_nodes = {x for x in desc_nodes if\
-            nx.shortest_path_length(self._augmented_condenced_model_digraph, variable_node, x) <= max_descentant_generations}
+        max_ancr_nodes = {x for x in ancr_nodes if nx.shortest_path_length(self._augmented_condenced_model_digraph, x, variable_node) <= max_ancestor_generations}
+        max_desc_nodes = {x for x in desc_nodes if nx.shortest_path_length(self._augmented_condenced_model_digraph, variable_node, x) <= max_descentant_generations}
 
         subgraph = self._augmented_condenced_model_digraph.subgraph({variable_node}.union(max_ancr_nodes).union(max_desc_nodes))
         graph_to_plot = nx.DiGraph()
