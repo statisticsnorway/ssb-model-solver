@@ -7,7 +7,7 @@ import numpy as np
 import networkx as nx
 from pyvis.network import Network
 import pandas as pd
-from symengine import var, Matrix, Lambdify
+from symengine import var, Matrix, Lambdify, Max, Min, log, exp
 import matplotlib.pyplot as plt
 from collections import Counter
 from functools import cache
@@ -180,7 +180,7 @@ class ModelSolver:
             is_lag = (is_var and chr == '(') or is_lag
             is_sci = (is_num and chr == 'e') or is_sci
 
-            if (is_var and chr == '(' and xxx in ['max', 'min']):
+            if (is_var and chr == '(' and xxx in ['max', 'min', 'log', 'exp']):
                 parsed_eqn_with_lag_notation += ''.join([xxx,chr])
                 is_var, is_lag = False, False
                 xxx, lag = '', ''
@@ -220,7 +220,8 @@ class ModelSolver:
                 lag = ''.join([lag, chr])
                 if chr == ')':
                     is_lag = False
-
+        print(var_mapping)
+        print(lag_mapping)
         eqn_with_lag_notation=''.join(parsed_eqn_with_lag_notation)
 
         return eqn_with_lag_notation, var_mapping, lag_mapping
@@ -371,6 +372,7 @@ class ModelSolver:
     # Generates symbolic objective functon and Jacobian matrix for a given strong component
     @staticmethod
     def _gen_def_or_obj_fun_and_jac(eqns: tuple, endo_vars: tuple, exog_vars: tuple):
+        max, min = Max, Max
         endo_sym, exog_sym, obj_fun = [], [], []
         for endo_var in endo_vars:
             var(endo_var)
