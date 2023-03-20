@@ -341,7 +341,7 @@ class ModelSolver:
 
         sim_code, blocks = {}, {}
         for i, node in enumerate(reversed(tuple(self._condenced_model_digraph.nodes()))):
-            block_endo_vars, block_eqns_orig, block_eqns_lags, block_exog_vars = [], [], [], set()
+            block_endo_vars, block_eqns_orig, block_eqns_lags, block_exog_vars = tuple(), tuple(), tuple(), set()
             for member in self._condenced_model_digraph.nodes[node]['members']:
                 j = self._eqns_endo_vars_match[member]
                 eqns_analyzed = self._eqns_analyzed[j]
@@ -351,19 +351,21 @@ class ModelSolver:
                 block_exog_vars.update([val for key, val in eqns_analyzed[2].items() if self._lag_notation not in key])
 
             block_exog_vars.difference_update(set(block_endo_vars))
-            (def_fun, obj_fun, jac) = self._gen_def_or_obj_fun_and_jac(tuple(block_eqns_lags), tuple(block_endo_vars), tuple(block_exog_vars))
+            block_exog_vars = tuple(block_exog_vars)
+
+            (def_fun, obj_fun, jac) = self._gen_def_or_obj_fun_and_jac(block_eqns_lags, block_endo_vars, block_exog_vars)
             sim_code[i+1] = (
                 def_fun,
                 obj_fun,
                 jac,
-                tuple(block_endo_vars),
-                tuple(block_exog_vars),
-                tuple(block_eqns_lags)
+                block_endo_vars,
+                block_exog_vars,
+                block_eqns_lags
                 )
             blocks[i+1] = (
-                tuple(block_endo_vars),
-                tuple(block_exog_vars),
-                tuple(block_eqns_orig),
+                block_endo_vars,
+                block_exog_vars,
+                block_eqns_orig,
                 True if def_fun else False
                 )
 
@@ -690,6 +692,23 @@ class ModelSolver:
         else:
             raise NameError('Variable is not in model')
         return var_node
+    
+    
+    def find_cause(self, var):
+        if self._some_error:
+            return
+        
+        var_node = self._find_var_node(var)
+        ancs_nodes = nx.ancestors(self._augmented_condenced_model_digraph, var_node)
+        
+        vars = tuple()
+        for node in ancs_nodes:
+            if len(nx.ancestors(self._augmented_condenced_model_digraph, node)) == 0:
+                vars += self._node_varlit_mapping.get(node)
+
+        print(vars)
+        
+        
 
 
     # Stole solution from https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
