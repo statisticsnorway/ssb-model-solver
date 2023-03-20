@@ -694,16 +694,16 @@ class ModelSolver:
         return var_node
     
     
-    def trace_to_exog_var(self, endo_var):
+    def trace_to_exog_vars(self, endo_var):
         """
         Prints all exogenous variables that are ancestors to endo_var
         """
         
-        print('\n'.join([' '.join(x) for x in list(self._chunks(self._trace_to_exog_var(endo_var), 25))]))
+        print('\n'.join([' '.join(x) for x in list(self._chunks(self._trace_to_exog_vars(endo_var), 25))]))
     
     
     ## Finds all exogenous variables that are ancestors to endo_var
-    def _trace_to_exog_var(self, endo_var):
+    def _trace_to_exog_vars(self, endo_var):
         if self._some_error:
             return
         
@@ -716,6 +716,10 @@ class ModelSolver:
                 ancs_exog_vars += self._node_varlit_mapping.get(node)
 
         return ancs_exog_vars
+
+
+    def _trace_to_exog_vals(self):
+        pass
 
 
     # Stole solution from https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
