@@ -17,33 +17,33 @@ from numba import njit
 class ModelSolver:
     """
     EXAMPLE OF USE USE:
-    Let "equations" and "endogenous" be lists containing equations and endogenous variables, respectively, stored as strings. E.g.
-    
+    Let "equations" and "endogenous" be lists containing equations and endogenous variables, respectively, stored as strings, e.g.
+
         equations = [
             'x+y=A',
             'x/y=B'
-            ]
+        ]
         endogenous = [
             'x',
             'y'
-            ]
-    
+        ]
+
     where 'A' and 'B' are exogenous variables
-    Note that the solver does not support mathematical functions, only addition, subtraction, multiplication and division. Support for this may be added
-    
+    The solver supports the mathematical functions min, max, log and exp
+
     A class instance called "model" is initialized by
-    
+
         model = ModelSolver(equations, endogenous)
-    
+
     This reads in the equations and endogenous variables and perform block analysis and ordering and generates simulation code
     Upon completion, the model is ready to be solved subject to data (exogenous and initial values of endogenous variables) in a Pandas DataFrame
     Let "input_df" be a dataframe containing data on A and B and initial values for x and y. Then the model can be solved by invoking
-    
+
         solution_df = model.solve_model(input_df)
-    
+
     Now "solution_df" is a Pandas DataFrame with exactly the same dimensions as "input_df", but where the endogenous variables are replaced by the solutions to the model
     The last solution is also stored in "model.last_solution"
-    
+
     ModelSolver also has a number of methods for analysis (TBA)
     """
 
