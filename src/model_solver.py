@@ -378,14 +378,15 @@ class ModelSolver:
             var(exog_var)
             exog_sym += eval(exog_var),
         for eqn in eqns:
-            lhs, rhs = ''.join(eqn).split('=')
-            if len(eqns) == 1 and endo_var == lhs and endo_var not in rhs:
+            i = eqn.index('=')
+            lhs, rhs = eqn[:i], eqn[i+1:]
+            if len(eqns) == 1 and endo_var == ''.join(lhs) and endo_var not in rhs:
                 if len(exog_vars) == 0:
                     return lambda _: eval(rhs.strip().strip('+')), None, None
-                def_fun = eval(rhs.strip().strip('+'))
+                def_fun = eval(''.join(rhs).strip().strip('+'))
                 return Lambdify([exog_sym], def_fun), None, None
 
-            obj_fun_row = eval('-'.join([''.join(['(', lhs.strip().strip('+'), ')']), ''.join(['(', rhs.strip().strip('+'), ')'])]))
+            obj_fun_row = eval('-'.join([''.join(['(', ''.join(lhs).strip().strip('+'), ')']), ''.join(['(', ''.join(rhs).strip().strip('+'), ')'])]))
             obj_fun += obj_fun_row,
 
         jac = Matrix(obj_fun).jacobian(Matrix(endo_sym)).tolist()
