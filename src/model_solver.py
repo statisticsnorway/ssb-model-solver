@@ -553,12 +553,6 @@ class ModelSolver:
                 maxiter=self._max_iter
                 )
 
-            if solution.get('status') == 2:
-                print(*endo_vars_names, sep=' ')
-                print(*self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period, False), sep=' ')
-                print(*exog_vars_names, sep=' ')
-                print(*self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period, False), sep=' ')
-
         return solution
 
 
