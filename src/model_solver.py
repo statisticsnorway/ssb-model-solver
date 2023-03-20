@@ -680,10 +680,10 @@ class ModelSolver:
             net.repulsion(node_distance=50, central_gravity=0.01, spring_length=100, spring_strength=0.02, damping=0.5)
             net.show('graph.html')
         else:
-            plt.figure(figsize=(5, 5))
+            plt.figure(figsize=(7.5, 7.5))
             colors = [node[1]['color'] for node in graph_to_plot.nodes(data=True)]
             layout = nx.shell_layout(graph_to_plot)
-            nx.draw(graph_to_plot, with_labels=True, labels=mapping, pos=layout, node_size=3000, node_color=colors, font_size=7, font_color='white')
+            nx.draw(graph_to_plot, with_labels=True, labels=mapping, pos=layout, node_size=5000, node_color=colors, font_size=9, font_color='white')
             plt.plot()
 
 
