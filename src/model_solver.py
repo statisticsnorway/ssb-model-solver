@@ -457,7 +457,7 @@ class ModelSolver:
             print(' '.join(['Block consists of', 'a definition' if block[3] else 'an equation or a system of equations']))
             print('\n{} endogenous variables:'.format(len(block[0])))
             print('\n'.join([' '.join(x) for x in list(self._chunks(block[0], 25))]))
-            print('\n{} exogenous variables:'.format(len(block[1])))
+            print('\n{} exogenous or predetermined variables:'.format(len(block[1])))
             print('\n'.join([' '.join(x) for x in list(self._chunks([self._var_mapping.get(x) for x in block[1]], 25))]))
             print('\n{} equations:'.format(len(block[2])))
             print('\n'.join(block[2]))
@@ -512,12 +512,13 @@ class ModelSolver:
                     jit=jit
                     )
 
+                output_array[period, [var_col_index.get(x) for x in endo_vars]] = solution['x']
+
                 if solution.get('status') == 2:
+                    vals = self._get_vals(output_array, )
                     raise ValueError('Block {} did not converge'.format(key))
                 if solution.get('status') == 1:
                     print('Maximum number of iterations reached for block {} in {}'.format(key, input_df.index[period]))
-
-                output_array[period, [var_col_index.get(x) for x in endo_vars]] = solution['x']
 
         print('\nFinished')
         print('-'*100)
@@ -694,20 +695,20 @@ class ModelSolver:
         return var_node
     
     
-    def trace_to_exog_vars(self, endo_var):
+    def trace_to_exog_vars(self, block):
         """
-        Prints all exogenous variables that are ancestors to endo_var
+        Prints all exogenous variables that are ancestors to block
         """
 
         if self._some_error:
             return
 
-        print('\n'.join([' '.join(x) for x in list(self._chunks(self._trace_to_exog_vars(endo_var), 25))]))
+        print('\n'.join([' '.join(x) for x in list(self._chunks(self._trace_to_exog_vars(block), 25))]))
     
     
-    ## Finds all exogenous variables that are ancestors to endo_var
-    def _trace_to_exog_vars(self, endo_var):        
-        var_node = self._find_var_node(endo_var)
+    ## Finds all exogenous variables that are ancestors to block
+    def _trace_to_exog_vars(self, block):
+        var_node = len(self._blocks)-block
         ancs_nodes = nx.ancestors(self._augmented_condenced_model_digraph, var_node)
         
         ancs_exog_vars = tuple()
