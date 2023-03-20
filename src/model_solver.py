@@ -382,7 +382,7 @@ class ModelSolver:
             lhs, rhs = eqn[:i], eqn[i+1:]
             if len(eqns) == 1 and endo_var == ''.join(lhs) and endo_var not in rhs:
                 if len(exog_vars) == 0:
-                    return lambda _: eval(rhs.strip().strip('+')), None, None
+                    return lambda _: eval(''.join(rhs).strip().strip('+')), None, None
                 def_fun = eval(''.join(rhs).strip().strip('+'))
                 return Lambdify([exog_sym], def_fun), None, None
 
