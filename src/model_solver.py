@@ -515,7 +515,11 @@ class ModelSolver:
                 output_array[period, [var_col_index.get(x) for x in endo_vars]] = solution['x']
 
                 if solution.get('status') == 2:
-                    vals = self._get_vals(output_array, )
+                    ancs_exog_vars = self._trace_to_exog_vars(key)
+                    _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self._var_mapping.get(x) for x in ancs_exog_vars))
+                    ancs_exog_vals = self._get_vals(output_array, ancs_exog_cols, ancs_exog_lags, period, jit)
+                    print('\nBlock {} trace back to the following exogenous variable values in {}:'.format(key, input_df.index[period]))
+                    print(*['='.join([x,str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
                     raise ValueError('Block {} did not converge'.format(key))
                 if solution.get('status') == 1:
                     print('Maximum number of iterations reached for block {} in {}'.format(key, input_df.index[period]))
