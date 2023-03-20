@@ -70,8 +70,10 @@ class ModelSolver:
         self._eqns_endo_vars_bigraph = self._gen_eqns_endo_vars_bigraph()
         self._eqns_endo_vars_match = self._find_max_bipartite_match()
         self._model_digraph = self._gen_model_digraph()
-        self._condenced_model_digraph, self.condenced_model_node_varlist_mapping = self._gen_condenced_model_digraph()
-        self._augmented_condenced_model_digraph = self._gen_augmented_condenced_model_digraph()
+        self._condenced_model_digraph, self._condenced_model_node_varlist_mapping = self._gen_condenced_model_digraph()
+        self._augmented_condenced_model_digraph, self._augmented_condenced_model_node_varlist_mapping = self._gen_augmented_condenced_model_digraph()
+        
+        self._node_varlit_mapping = {**self._condenced_model_node_varlist_mapping, **self._augmented_condenced_model_node_varlist_mapping}
 
         # Generating everything needed to simulate model
         self._sim_code, self._blocks = self._gen_sim_code_and_blocks()
@@ -317,13 +319,15 @@ class ModelSolver:
         augmented_condenced_model_digraph = self._condenced_model_digraph.copy()
 
         # Make edges between exogenous variables and strong components it is a part of
+        node_vars_mapping = {}
         for node in self._condenced_model_digraph.nodes():
             for member in self._condenced_model_digraph.nodes[node]['members']:
                 for exog_var_adjacent_to_node in [val for key, val in self._eqns_analyzed[self._eqns_endo_vars_match[member]][2].items()
                                                   if self._lag_notation not in val and key not in self._endo_vars]:
                     augmented_condenced_model_digraph.add_edge(exog_var_adjacent_to_node, node)
+                    node_vars_mapping[exog_var_adjacent_to_node] = exog_var_adjacent_to_node,
 
-        return augmented_condenced_model_digraph
+        return augmented_condenced_model_digraph, node_vars_mapping
 
 
     # Generates simulation code and blocks
@@ -643,9 +647,9 @@ class ModelSolver:
         mapping = {}
         for node in subgraph.nodes():
             if node in self._condenced_model_digraph:
-                node_label = '\n'.join(self.condenced_model_node_varlist_mapping[node])\
-                    if len(self.condenced_model_node_varlist_mapping[node]) < 10 else '***\nHUGE BLOCK\n***'
-                node_title = '<br>'.join(self.condenced_model_node_varlist_mapping[node])
+                node_label = '\n'.join(self._condenced_model_node_varlist_mapping[node])\
+                    if len(self._condenced_model_node_varlist_mapping[node]) < 10 else '***\nHUGE BLOCK\n***'
+                node_title = '<br>'.join(self._condenced_model_node_varlist_mapping[node])
                 if node == variable_node:
                     node_size = 200
                     node_color = 'red'
@@ -661,9 +665,9 @@ class ModelSolver:
                 node_size = 100
                 node_color = 'silver'
             graph_to_plot.add_node(node, label=node_label, title=node_title, shape='circle', size=node_size, color=node_color)
-            if node in self.condenced_model_node_varlist_mapping:
+            if node in self._condenced_model_node_varlist_mapping:
                 mapping[node] =  ':\n'.join([' '.join(['Block', str(len(self._blocks)-node)]),
-                                             '\n'.join(self.condenced_model_node_varlist_mapping[node]) if len(self.condenced_model_node_varlist_mapping[node]) < 5 else '...'])
+                                             '\n'.join(self._condenced_model_node_varlist_mapping[node]) if len(self._condenced_model_node_varlist_mapping[node]) < 5 else '...'])
             else:
                 mapping[node] = str(node)
 
