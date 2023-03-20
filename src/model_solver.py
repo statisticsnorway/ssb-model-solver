@@ -172,7 +172,7 @@ class ModelSolver:
 
         parsed_eqn_with_lag_notation, var_mapping, lag_mapping = [], {}, {}
         xxx, lag = '', ''
-        is_num, is_var, is_fun, is_lag, is_sci = False, False, False, False, False
+        is_num, is_var, is_lag, is_sci = False, False, False, False
 
         for chr in ''.join([eqn, ' ']):
             is_num = (chr.isnumeric() and not is_var) or is_num
