@@ -465,7 +465,7 @@ class ModelSolver:
             print('Block {} is not in model'.format(block))
 
 
-    def solve_model(self, input_data: pd.DataFrame, jit=True):
+    def solve_model(self, input_df: pd.DataFrame, jit=True):
         """
         Solves the model for a given DataFrame
         """
@@ -476,8 +476,8 @@ class ModelSolver:
         print('-'*100)
         print('Solving model...')
 
-        output_array = input_data.to_numpy(dtype=np.float64, copy=True)
-        var_col_index = {var: i for i, var in enumerate(input_data.columns.str.lower().to_list())}
+        output_array = input_df.to_numpy(dtype=np.float64, copy=True)
+        var_col_index = {var: i for i, var in enumerate(input_df.columns.str.lower().to_list())}
 
         # Function that gets name, column index and lag for variables
         # Function uses cache since it's calle repeatedly
@@ -492,7 +492,7 @@ class ModelSolver:
 
         first_period, last_period = self._max_lag, output_array.shape[0]-1
         periods = range(first_period, last_period+1)
-        print('\tFirst period: {}, last period: {}'.format(input_data.index[first_period], input_data.index[last_period]))
+        print('\tFirst period: {}, last period: {}'.format(input_df.index[first_period], input_df.index[last_period]))
         print('\tSolving')
         print(''.join(['\t|', ' '*(last_period-first_period+1), '|']))
         print('\t ', end='')
@@ -515,14 +515,14 @@ class ModelSolver:
                 if solution.get('status') == 2:
                     raise ValueError('Block {} did not converge'.format(key))
                 if solution.get('status') == 1:
-                    print('Maximum number of iterations reached for block {} in {}'.format(key, input_data.index[period]))
+                    print('Maximum number of iterations reached for block {} in {}'.format(key, input_df.index[period]))
 
                 output_array[period, [var_col_index.get(x) for x in endo_vars]] = solution['x']
 
         print('\nFinished')
         print('-'*100)
 
-        self._last_solution = pd.DataFrame(output_array, columns=input_data.columns, index=input_data.index)
+        self._last_solution = pd.DataFrame(output_array, columns=input_df.columns, index=input_df.index)
 
         return self._last_solution
 
@@ -698,15 +698,15 @@ class ModelSolver:
         """
         Prints all exogenous variables that are ancestors to endo_var
         """
-        
+
+        if self._some_error:
+            return
+
         print('\n'.join([' '.join(x) for x in list(self._chunks(self._trace_to_exog_vars(endo_var), 25))]))
     
     
     ## Finds all exogenous variables that are ancestors to endo_var
-    def _trace_to_exog_vars(self, endo_var):
-        if self._some_error:
-            return
-        
+    def _trace_to_exog_vars(self, endo_var):        
         var_node = self._find_var_node(endo_var)
         ancs_nodes = nx.ancestors(self._augmented_condenced_model_digraph, var_node)
         
@@ -718,7 +718,7 @@ class ModelSolver:
         return ancs_exog_vars
 
 
-    def _trace_to_exog_vals(self):
+    def _trace_to_exog_vals(self, endo_var, df):
         pass
 
 
