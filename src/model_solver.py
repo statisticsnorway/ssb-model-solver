@@ -220,8 +220,7 @@ class ModelSolver:
                 lag = ''.join([lag, chr])
                 if chr == ')':
                     is_lag = False
-        print(var_mapping)
-        print(lag_mapping)
+
         eqn_with_lag_notation=''.join(parsed_eqn_with_lag_notation)
 
         return eqn_with_lag_notation, var_mapping, lag_mapping
@@ -382,7 +381,7 @@ class ModelSolver:
             exog_sym += eval(exog_var),
         for eqn in eqns:
             lhs, rhs = eqn.split('=')
-            if len(eqns) == 1 and endo_var == lhs:
+            if len(eqns) == 1 and endo_var == lhs and endo_var not in rhs:
                 if len(exog_vars) == 0:
                     return lambda _: eval(rhs.strip().strip('+')), None, None
                 def_fun = eval(rhs.strip().strip('+'))
@@ -546,9 +545,9 @@ class ModelSolver:
             
             if solution.get('status') == 2:
                 print(*endo_vars_names, sep=' ')
-                print(*self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period), sep=' ')
+                print(*self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period, False), sep=' ')
                 print(*exog_vars_names, sep=' ')
-                print(*self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period), sep=' ')
+                print(*self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period, False), sep=' ')
 
         return solution
 
