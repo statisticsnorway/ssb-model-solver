@@ -555,8 +555,8 @@ class ModelSolver:
                 tol = self._root_tolerance,
                 maxiter=self._max_iter
                 )
-            if all(np.isfinite(solution.get('x'))) is False:
-                solution['status'] = 2
+        if all(np.isfinite(solution.get('x'))) is False:
+            solution['status'] = 2
             
         if solution.get('status') == 2:
             endo_vars_vals = self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period, jit)
