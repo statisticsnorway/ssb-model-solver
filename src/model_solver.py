@@ -388,22 +388,24 @@ class ModelSolver:
             lhs, rhs = eqn[:i], eqn[i+1:]
             if len(eqns) == 1 and endo_var == ''.join(lhs) and endo_var not in rhs:
                 if len(exog_vars) == 0:
-                    return lambda _: eval(''.join(rhs).strip().strip('+')), None, None
+                    return lambda _: np.array([eval(''.join(rhs).strip().strip('+'))]), None, None
                 def_fun = eval(''.join(rhs).strip().strip('+'))
-                return Lambdify([exog_sym], def_fun), None, None
+                def_fun_lam = Lambdify([exog_sym], def_fun)
+                def_fun_out = lambda args: np.array([def_fun_lam(args)], dtype=np.float64)
+                return def_fun_out, None, None
 
             obj_fun_row = eval('-'.join([''.join(['(', ''.join(lhs).strip().strip('+'), ')']), ''.join(['(', ''.join(rhs).strip().strip('+'), ')'])]))
             obj_fun += obj_fun_row,
 
         jac = Matrix(obj_fun).jacobian(Matrix(endo_sym)).tolist()
 
-        obj_fun_lambdify = Lambdify([*endo_sym, *exog_sym], obj_fun, cse=True)
-        jac_lambdify = Lambdify([*endo_sym, *exog_sym], jac, cse=True)
+        obj_fun_lam = Lambdify([*endo_sym, *exog_sym], obj_fun, cse=True)
+        jac_lam = Lambdify([*endo_sym, *exog_sym], jac, cse=True)
 
-        output_obj_fun = lambda val_list, *args: obj_fun_lambdify(*val_list, *args)
-        output_jac = lambda val_list, *args: jac_lambdify(*val_list, *args)
+        obj_fun_out = lambda val_list, *args: obj_fun_lam(*val_list, *args)
+        jac_out = lambda val_list, *args: jac_lam(*val_list, *args)
 
-        return None, output_obj_fun, output_jac
+        return None, obj_fun_out, jac_out
 
 
     def switch_endo_var(self, old_endo, new_endo):
@@ -512,7 +514,7 @@ class ModelSolver:
                     jit=jit
                     )
 
-                output_array[period, [var_col_index.get(x) for x in endo_vars]] = solution['x']
+                output_array[period, [var_col_index.get(x) for x in endo_vars]] = solution.get('x')
 
                 if solution.get('status') == 2:
                     print('\nBlock {} consists of the following equations:'.format(key))
@@ -544,8 +546,12 @@ class ModelSolver:
         # Othwewise the objective function is sent to Newton-Raphson
         if def_fun:
             solution = {}
-            solution['x'] = def_fun(tuple(self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period, jit)))
-            solution['status'] = 0
+            try:
+                solution['x'] = def_fun(tuple(self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period, jit)))
+                solution['status'] = 0
+            except ZeroDivisionError:
+                solution['x'] = np.nan
+                solution['status'] = 2
         else:
             solution = self._newton_raphson(
                 obj_fun,
@@ -555,8 +561,8 @@ class ModelSolver:
                 tol = self._root_tolerance,
                 maxiter=self._max_iter
                 )
-        if all(np.isfinite(solution.get('x'))) is False:
-            solution['status'] = 2
+            if all(np.isfinite(solution.get('x'))) is False:
+                solution['status'] = 2
             
         if solution.get('status') == 2:
             endo_vars_vals = self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period, jit)
