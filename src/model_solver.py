@@ -729,8 +729,31 @@ class ModelSolver:
         return ancs_exog_vars
 
 
-    def _trace_to_exog_vals(self, endo_var, df):
-        pass
+    def trace_to_exog_vals(self, block, period_index):
+        """
+        Traces block back to exogenous values
+        """
+        try:
+            output_array = self._last_solution.to_numpy(dtype=np.float64, copy=True)
+            var_col_index = {var: i for i, var in enumerate(self._last_solution.columns.str.lower().to_list())}
+
+            def get_var_info(vars):
+                if not vars:
+                    return (tuple([]), np.array([], dtype=int), np.array([], dtype=int))
+                # Stole zip-solution from: https://stackoverflow.com/questions/21444338/transpose-nested-list-in-python
+                names, lags = tuple(map(list, zip(*[self._lag_mapping.get(x) for x in vars])))
+                cols = tuple(var_col_index.get(x) for x in names)
+                return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
+
+            ancs_exog_vars = self._trace_to_exog_vars(block)
+            if ancs_exog_vars:
+                _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self._var_mapping.get(x) for x in ancs_exog_vars))
+                ancs_exog_vals = self._get_vals(output_array, ancs_exog_cols, ancs_exog_lags, 2, False)
+                print('\nBlock {} trace back to the following exogenous variable values in {}:'.format(block, self._last_solution.index[period_index]))
+                print(*['='.join([x,str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
+            
+        except AttributeError:
+            print('No solution exists')
 
 
     # Stole solution from https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
