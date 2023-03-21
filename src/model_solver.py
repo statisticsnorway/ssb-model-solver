@@ -1,5 +1,6 @@
 ##################################
 # Author: Magnus Kvåle Helliesen #
+# mkh@ssb.no                     #
 ##################################
 
 import os
