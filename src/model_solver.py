@@ -515,6 +515,8 @@ class ModelSolver:
                 output_array[period, [var_col_index.get(x) for x in endo_vars]] = solution['x']
 
                 if solution.get('status') == 2:
+                    print('\nBlock {} consists of the following equations:'.format(key))
+                    print(*[x for x in self._blocks.get(key)[2]], sep='\n')
                     ancs_exog_vars = self._trace_to_exog_vars(key)
                     if ancs_exog_vars:
                         _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self._var_mapping.get(x) for x in ancs_exog_vars))
@@ -553,6 +555,15 @@ class ModelSolver:
                 tol = self._root_tolerance,
                 maxiter=self._max_iter
                 )
+            
+        if solution.get('status') == 2:
+            endo_vars_vals = self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period, jit)
+            exog_vars_vals = self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period, jit)
+            print()
+            print('\nEndogenous variables in block upon failure:')
+            print(*['='.join([x,str(y)]) for x, y in zip(endo_vars_names, endo_vars_vals)], sep='\n')
+            print('\nExogenous and predetermined variables in block upon failure:')
+            print(*['='.join([x,str(y)]) for x, y in zip(exog_vars_names, exog_vars_vals)], sep='\n')
 
         return solution
 
