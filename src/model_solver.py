@@ -523,7 +523,7 @@ class ModelSolver:
                     if ancs_exog_vars:
                         _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self._var_mapping.get(x) for x in ancs_exog_vars))
                         ancs_exog_vals = self._get_vals(output_array, ancs_exog_cols, ancs_exog_lags, period, jit)
-                        print('\nBlock {} trace back to the following exogenous variable values in {}:'.format(key, input_df.index[period]))
+                        print('\nBlock {} traces back to the following exogenous variable values in {}:'.format(key, input_df.index[period]))
                         print(*['='.join([x,str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
                     raise ValueError('Block {} did not converge'.format(key))
                 if solution.get('status') == 1:
@@ -757,7 +757,7 @@ class ModelSolver:
             if ancs_exog_vars:
                 _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self._var_mapping.get(x) for x in ancs_exog_vars))
                 ancs_exog_vals = self._get_vals(output_array, ancs_exog_cols, ancs_exog_lags, 2, False)
-                print('\nBlock {} trace back to the following exogenous variable values in {}:'.format(block, self._last_solution.index[period_index]))
+                print('\nBlock {} traces back to the following exogenous variable values in {}:'.format(block, self._last_solution.index[period_index]))
                 print(*['='.join([x,str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
             
         except AttributeError:
