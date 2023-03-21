@@ -478,7 +478,8 @@ class ModelSolver:
         print('-'*100)
         print('Solving model...')
 
-        output_array = input_df.to_numpy(dtype=np.float64, copy=True)
+        output_df = input_df.copy()
+        output_array = input_df.to_numpy(dtype=np.float64)
         var_col_index = {var: i for i, var in enumerate(input_df.columns.str.lower().to_list())}
 
         # Function that gets name, column index and lag for variables
@@ -532,9 +533,9 @@ class ModelSolver:
         print('\nFinished')
         print('-'*100)
 
-        self._last_solution = pd.DataFrame(output_array, columns=input_df.columns, index=input_df.index)
+        self._last_solution = output_df
 
-        return self._last_solution
+        return output_df
 
 
     # Solves one block of the model for a given time period
