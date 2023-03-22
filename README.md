@@ -7,7 +7,7 @@ Magnus Helliesen <mkh@ssb.no>
 
 ---
 
-ModelSolver is a model class. It defines, analyzes and solves dynamic algebraic model with lots of equations.
+ModelSolver is a Python class. It defines, analyzes and solves dynamic algebraic model with lots of equations.
 
 Usage is
 
@@ -28,6 +28,7 @@ ModelSolver uses the following packages
 * [Symengine](https://pypi.org/project/symengine/)
 * [Numba](https://numba.pydata.org/)
 * [collections](https://docs.python.org/3/library/collections.html)
+* [functools](https://docs.python.org/3/library/functools.html)
 
 ## Example of use
 Let `equations = ['x+y = 1', 'x-y = 2']` and `endogenous = ['x', 'y']`, then the model class is initialized by
