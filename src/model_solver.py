@@ -3,10 +3,8 @@
 # mkh@ssb.no                     #
 ##################################
 
-import os
 import numpy as np
 import networkx as nx
-from pyvis.network import Network
 import pandas as pd
 from symengine import var, Matrix, Lambdify, Max, Min, log, exp
 import matplotlib.pyplot as plt
@@ -18,6 +16,7 @@ from numba import njit
 class ModelSolver:
     """
     EXAMPLE OF USE USE:
+
     Let "equations" and "endogenous" be lists containing equations and endogenous variables, respectively, stored as strings, e.g.
 
         equations = [
