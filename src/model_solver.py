@@ -497,7 +497,7 @@ class ModelSolver:
         print('Solving model...')
 
         output_df = input_df.copy()
-        output_array = input_df.to_numpy(dtype=np.float64)
+        output_array = output_df.to_numpy(dtype=np.float64)
         var_col_index = {var: i for i, var in enumerate(input_df.columns.str.lower().to_list())}
 
         # Function that gets name, column index and lag for variables
