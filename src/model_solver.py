@@ -659,7 +659,7 @@ class ModelSolver:
         return {'x': x_i, 'fun': f_i, 'success': success, 'status': status}
 
 
-    def draw_blockwise_graph(self, var: str, max_ancs_gens: int, max_desc_gens: int, max_nodes: int):
+    def draw_blockwise_graph(self, var: str, max_ancs_gens: int=5, max_desc_gens: int=5, max_nodes: int=50, figsize=(7.5, 7.5)):
         """
         Draws a directed graph of block in which variable is along with max number of ancestors and descendants.
         """
@@ -717,10 +717,10 @@ class ModelSolver:
 
         graph_to_plot.add_edges_from(subgraph.edges())
 
-        plt.figure(figsize=(7.5, 7.5))
+        plt.figure(figsize=figsize)
         colors = [node[1]['color'] for node in graph_to_plot.nodes(data=True)]
         layout = nx.shell_layout(graph_to_plot)
-        nx.draw(graph_to_plot, with_labels=True, labels=mapping, pos=layout, node_size=5000, node_color=colors, font_size=9, font_color='white')
+        nx.draw(graph_to_plot, with_labels=True, labels=mapping, pos=layout, node_size=5000, node_color=colors, font_size=9, font_color='white', arrowsize=25)
         plt.plot()
 
 
