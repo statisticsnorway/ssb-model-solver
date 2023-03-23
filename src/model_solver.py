@@ -583,10 +583,13 @@ class ModelSolver:
         if cols.shape[0] == 0:
             return np.array([], np.float64)
         else:
-            if jit:
-                return self._get_vals_jit(array, cols, lags, period)
+            if any([period-x < 0 for x in lags]):
+                raise IndexError('Period is out of range')
             else:
-                return self._get_vals_nojit(array, cols, lags, period)
+                if jit:
+                    return self._get_vals_jit(array, cols, lags, period)
+                else:
+                    return self._get_vals_nojit(array, cols, lags, period)
 
 
     # Gets values from DataFrame via array view
