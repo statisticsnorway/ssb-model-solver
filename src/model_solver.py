@@ -408,17 +408,26 @@ class ModelSolver:
         return None, obj_fun_out, jac_out
 
 
-    def switch_endo_var(self, old_endo, new_endo):
+    def switch_endo_var(self, old_endo_vars: list, new_endo_vars: list):
         """
         This method will allow the user to switch endogenos and exogenous variables
         """
-        pass
+
+        if all([x in self._endo_vars for x in old_endo_vars]) is False:
+            print('All variables in old_endo_vars are not endogenous')
+            return
+        if any([x in self._endo_vars for x in new_endo_vars]):
+            print('Some variables in new_endo_vars are endogenous')
+            return
+        
+        self._endo_vars = (*[x for x in self._endo_vars if x not in old_endo_vars], *new_endo_vars)
 
 
-    def find_endo_var(self, endo_var):
+    def find_endo_var(self, endo_var: str):
         """
         Finds what block solves the given engoenous variable
         """
+
         block = [key for key, val in self._blocks.items() if endo_var in val[0]]
         if block:
             return block[0]
@@ -449,7 +458,7 @@ class ModelSolver:
             self.show_block(key)
 
 
-    def show_block(self, i):
+    def show_block(self, i: int):
         """
         Prints endogenous and exogenous variables and equations for a given block
         """
@@ -717,7 +726,7 @@ class ModelSolver:
         return var_node
     
     
-    def trace_to_exog_vars(self, block):
+    def trace_to_exog_vars(self, block: str):
         """
         Prints all exogenous variables that are ancestors to block
         """
@@ -741,7 +750,7 @@ class ModelSolver:
         return ancs_exog_vars
 
 
-    def trace_to_exog_vals(self, block, period_index):
+    def trace_to_exog_vals(self, block: int, period_index: int):
         """
         Traces block back to exogenous values
         """
