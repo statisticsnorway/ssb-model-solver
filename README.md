@@ -7,7 +7,7 @@ Magnus Helliesen <mkh@ssb.no>
 
 ---
 
-ModelSolver is a Python class. It defines, analyzes and solves dynamic algebraic model with lots of equations.
+ModelSolver is a Python class. It defines, analyzes and solves dynamic algebraic model with lots of equations. See [documentation](https://github.com/statisticsnorway/model-solver/blob/main/model-solver.pdf) for detailed information.
 
 Usage is
 
