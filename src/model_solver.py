@@ -105,7 +105,7 @@ class ModelSolver:
     @property
     def last_solution(self):
         try:
-            return self._last_solution
+            return self._last_solution.iloc[self._max_lag:, :]
         except AttributeError:
             print('No solution exists')
 
@@ -535,7 +535,7 @@ class ModelSolver:
 
         self._last_solution = output_df
 
-        return output_df
+        return output_df.iloc[self._max_lag:, :]
 
 
     # Solves one block of the model for a given time period
@@ -757,7 +757,7 @@ class ModelSolver:
             ancs_exog_vars = self._trace_to_exog_vars(block)
             if ancs_exog_vars:
                 _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self._var_mapping.get(x) for x in ancs_exog_vars))
-                ancs_exog_vals = self._get_vals(output_array, ancs_exog_cols, ancs_exog_lags, 2, False)
+                ancs_exog_vals = self._get_vals(output_array, ancs_exog_cols, ancs_exog_lags, period_index, False)
                 print('\nBlock {} traces back to the following exogenous variable values in {}:'.format(block, self._last_solution.index[period_index]))
                 print(*['='.join([x,str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
             
