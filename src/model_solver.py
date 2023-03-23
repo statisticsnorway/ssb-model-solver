@@ -496,9 +496,9 @@ class ModelSolver:
         print('-'*100)
         print('Solving model...')
 
-        output_df = input_df.copy()
+        output_df = input_df.copy(deep=True)
         output_array = output_df.to_numpy(dtype=np.float64)
-        var_col_index = {var: i for i, var in enumerate(input_df.columns.str.lower().to_list())}
+        var_col_index = {var: i for i, var in enumerate(output_df.columns.str.lower().to_list())}
 
         # Function that gets name, column index and lag for variables
         # Function uses cache since it's calle repeatedly
@@ -513,7 +513,7 @@ class ModelSolver:
 
         first_period, last_period = self._max_lag, output_array.shape[0]-1
         periods = range(first_period, last_period+1)
-        print('\tFirst period: {}, last period: {}'.format(input_df.index[first_period], input_df.index[last_period]))
+        print('\tFirst period: {}, last period: {}'.format(output_df.index[first_period], output_df.index[last_period]))
         print('\tSolving')
         print(''.join(['\t|', ' '*(last_period-first_period+1), '|']))
         print('\t ', end='')
