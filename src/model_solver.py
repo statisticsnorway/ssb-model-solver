@@ -66,17 +66,7 @@ class ModelSolver:
         # Analyzing equation strings to determine variables, lags and coefficients
         self._eqns_analyzed, self._var_mapping, self._lag_mapping = self._analyze_eqns()
 
-        # Using graph theory to analyze equations using existing algorithms to establish minimum simultaneous blocks
-        self._eqns_endo_vars_bigraph = self._gen_eqns_endo_vars_bigraph()
-        self._eqns_endo_vars_match = self._find_max_bipartite_match()
-        self._model_digraph = self._gen_model_digraph()
-        self._condenced_model_digraph, self._condenced_model_node_varlist_mapping = self._gen_condenced_model_digraph()
-        self._augmented_condenced_model_digraph, self._augmented_condenced_model_node_varlist_mapping = self._gen_augmented_condenced_model_digraph()
-        
-        self._node_varlit_mapping = {**self._condenced_model_node_varlist_mapping, **self._augmented_condenced_model_node_varlist_mapping}
-
-        # Generating everything needed to simulate model
-        self._sim_code, self._blocks = self._gen_sim_code_and_blocks()
+        self._block_analyze_model()
 
         print('Finished')
         print('-'*100)
@@ -224,6 +214,22 @@ class ModelSolver:
                     is_lag = False
 
         return parsed_eqn_with_lag_notation, var_mapping, lag_mapping
+
+
+    # Performs block analysis of equations subject to endogenous variables
+    # Analysis is a sequence of operations using graph theory
+    def _block_analyze_model(self):
+        # Using graph theory to analyze equations using existing algorithms to establish minimum simultaneous blocks
+        self._eqns_endo_vars_bigraph = self._gen_eqns_endo_vars_bigraph()
+        self._eqns_endo_vars_match = self._find_max_bipartite_match()
+        self._model_digraph = self._gen_model_digraph()
+        self._condenced_model_digraph, self._condenced_model_node_varlist_mapping = self._gen_condenced_model_digraph()
+        self._augmented_condenced_model_digraph, self._augmented_condenced_model_node_varlist_mapping = self._gen_augmented_condenced_model_digraph()
+        
+        self._node_varlit_mapping = {**self._condenced_model_node_varlist_mapping, **self._augmented_condenced_model_node_varlist_mapping}
+
+        # Generating everything needed to simulate model
+        self._sim_code, self._blocks = self._gen_sim_code_and_blocks()
 
 
     # Generates bipartite graph (bigraph) connetcting equations (nodes in U) with endogenous variables (nodes in V)
@@ -410,7 +416,7 @@ class ModelSolver:
 
     def switch_endo_var(self, old_endo_vars: list, new_endo_vars: list):
         """
-        This method will allow the user to switch endogenos and exogenous variables
+        Sets old_endo_vars as exogenous and new_endo_vars as endogenous and performs block analysis
         """
 
         if all([x in self._endo_vars for x in old_endo_vars]) is False:
@@ -420,7 +426,10 @@ class ModelSolver:
             print('Some variables in new_endo_vars are endogenous')
             return
         
+        print('Analyzing model...')
         self._endo_vars = (*[x for x in self._endo_vars if x not in old_endo_vars], *new_endo_vars)
+        self._block_analyze_model()
+        print('Finished')
 
 
     def find_endo_var(self, endo_var: str):
