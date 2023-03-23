@@ -1,6 +1,6 @@
 # model-solver
 
-Class to define, block analyze and solve dynamic and algebraic models numerically
+Class to define, block analyze and solve dynamic and algebraic models numerically.
 
 Opprettet av:
 Magnus Helliesen <mkh@ssb.no>
@@ -19,13 +19,11 @@ where `equations` are equations and `endogenous` are endogenous variables, both 
 
 ## Built with
 ModelSolver uses the following packages
-* [os](https://docs.python.org/3/library/os.html)
 * [NumPy](https://numpy.org/)
 * [NetworkX](https://networkx.org/)
-* [Pyvis](https://pyvis.readthedocs.io/en/latest/)
-* [Scipy](https://scipy.org/)
+* [SciPy](https://scipy.org/)
 * [Pandas](https://pandas.pydata.org/)
-* [Symengine](https://pypi.org/project/symengine/)
+* [SymEngine](https://pypi.org/project/symengine/)
 * [Numba](https://numba.pydata.org/)
 * [collections](https://docs.python.org/3/library/collections.html)
 * [functools](https://docs.python.org/3/library/functools.html)
@@ -42,3 +40,4 @@ When initialized, the class reads in the equations, analyzes them for any lags, 
 When the class is finished initializing, the user can call the following methods:
 * `solution = model.solve(dataframe)` where `dataframe` is a **Pandas** dataframe containing initial values for the endogenous variables and values for the exogenous variables. `solution` is a dataframe with same dimensions as `dataframe` containing the solutions for the endogenous variables.
 * `model.draw_blockwise_graph(variable, maximum_ancestor_generations, maximum_decendants_generations)` where `variable` is a variable of interest, and `maximum_ancestor_generations` and `maximum_decendants_generations`are non-negative integers that governs the number of generations before and after the variable to be graphed. The output is a HTML-file with a relational graph.
+* More TBA
