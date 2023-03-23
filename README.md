@@ -21,12 +21,12 @@ where `equations` are equations and `endogenous` are endogenous variables, both 
 ModelSolver uses the following packages
 * [NumPy](https://numpy.org/)
 * [NetworkX](https://networkx.org/)
-* [SciPy](https://scipy.org/)
 * [Pandas](https://pandas.pydata.org/)
 * [SymEngine](https://pypi.org/project/symengine/)
 * [Numba](https://numba.pydata.org/)
 * [collections](https://docs.python.org/3/library/collections.html)
 * [functools](https://docs.python.org/3/library/functools.html)
+* [Matplotlib](https://matplotlib.org/)
 
 ## Example of use
 Let `equations = ['x+y = 1', 'x-y = 2']` and `endogenous = ['x', 'y']`, then the model class is initialized by
