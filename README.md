@@ -1,6 +1,6 @@
 # model-solver
 
-Class to define, block analyze and solve dynamic and algebraic models numerically.
+`ModelSolver` is a class that defines, block analyzes and solves dynamic and algebraic models numerically. See [documentation](https://github.com/statisticsnorway/model-solver/blob/main/model-solver.pdf) for detailed information about theory and implementation of the class.
 
 Opprettet av:
 Magnus Helliesen <mkh@ssb.no>
