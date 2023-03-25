@@ -82,12 +82,11 @@ class ModelSolver:
 
     @property
     def exog_vars(self):
-        exog_vars = ()
+        vars = set()
         for _, _, _, lag_mapping in self._eqns_analyzed:
-            for key, val in lag_mapping.items():
-                if val[0] not in [*exog_vars, *self._endo_vars]:
-                    exog_vars += val[0],
-        return exog_vars
+            for _, val in lag_mapping.items():
+                vars.update((val[0],))
+        return tuple(vars.difference(self._endo_vars))
 
     @property
     def max_lag(self):
