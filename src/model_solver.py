@@ -485,7 +485,7 @@ class ModelSolver:
             print(' '.join(['Block consists of', 'a definition' if block[3] else 'an equation or a system of equations']))
             print('\n{} endogenous variables:'.format(len(block[0])))
             print('\n'.join([' '.join(x) for x in list(self._chunks(block[0], 25))]))
-            print('\n{} exogenous or predetermined variables:'.format(len(block[1])))
+            print('\n{} predetermined variables:'.format(len(block[1])))
             print('\n'.join([' '.join(x) for x in list(self._chunks([self._var_mapping.get(x) for x in block[1]], 25))]))
             print('\n{} equations:'.format(len(block[2])))
             print('\n'.join(block[2]))
@@ -597,7 +597,7 @@ class ModelSolver:
             print()
             print('\nEndogenous variables in block upon failure:')
             print(*['='.join([x,str(y)]) for x, y in zip(endo_vars_names, endo_vars_vals)], sep='\n')
-            print('\nExogenous and predetermined variables in block upon failure:')
+            print('\nPredetermined variables in block upon failure:')
             print(*['='.join([x,str(y)]) for x, y in zip(exog_vars_names, exog_vars_vals)], sep='\n')
 
         return solution
