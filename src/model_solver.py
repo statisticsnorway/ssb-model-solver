@@ -698,18 +698,18 @@ class ModelSolver:
                 node_title = '<br>'.join(self._condenced_model_node_varlist_mapping[node])
                 if node == var_node:
                     node_size = 200
-                    node_color = 'red'
+                    node_color = '#c4351c'
                 if node in max_ancr_nodes:
                     node_size = 100
-                    node_color = 'green'
+                    node_color = '#00824d'
                 if node in max_desc_nodes:
                     node_size = 100
-                    node_color = 'blue'
+                    node_color = '#006cb6'
             else:
                 node_label = None
                 node_title = None
                 node_size = 100
-                node_color = 'silver'
+                node_color = '#6f9090'
 
             graph_to_plot.add_node(node, label=node_label, title=node_title, shape='circle', size=node_size, color=node_color)
 
@@ -728,7 +728,18 @@ class ModelSolver:
         plt.figure(figsize=figsize)
         colors = [node[1]['color'] for node in graph_to_plot.nodes(data=True)]
         layout = nx.shell_layout(graph_to_plot)
-        nx.draw(graph_to_plot, with_labels=True, labels=mapping, pos=layout, node_size=5000, node_color=colors, font_size=9, font_color='white', arrowsize=25)
+        nx.draw(graph_to_plot,
+                with_labels=True,
+                labels=mapping,
+                pos=layout,
+                node_size=5000,
+                node_color=colors,
+                font_size=9,
+                font_color='white',
+                arrowsize=25,
+                edge_color='#274247',
+                width=2.0
+                )
         plt.plot()
 
 
