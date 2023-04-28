@@ -127,7 +127,7 @@ class ModelSolver:
 
     # Imports lists containing equations and endogenous variables stored as strings
     # Checks that there are no blank lines, sets everything to lowercase and returns as tuples
-    def _init_model(self, eqns: list, endo_vars: list):
+    def __init_model(self, eqns: list, endo_vars: list):
         print('* Importing equations')
         for i, eqn in enumerate(eqns):
             if eqn.strip() == '':
@@ -146,7 +146,7 @@ class ModelSolver:
 
 
     # Analyzes equations of the model
-    def _analyze_eqns(self):
+    def __analyze_eqns(self):
         if self.__some_error:
             return None, None
 
@@ -166,7 +166,7 @@ class ModelSolver:
 
     # Takes an equation string and parses it into coefficients (special care is taken to deal with scientific notation), variables, lags and operators/brackets
     # I've written my own parser in stead of using some existing because it needs to take care of then (-)-notation for lags
-    def _analyze_eqn(self, eqn: str):
+    def __analyze_eqn(self, eqn: str):
         if self.__some_error:
             return
 
@@ -226,7 +226,7 @@ class ModelSolver:
 
     # Performs block analysis of equations subject to endogenous variables
     # Analysis is a sequence of operations using graph theory
-    def _block_analyze_model(self):
+    def __block_analyze_model(self):
         # Using graph theory to analyze equations using existing algorithms to establish minimum simultaneous blocks
         self.__eqns_endo_vars_bigraph = self.__gen_eqns_endo_vars_bigraph()
         self.__eqns_endo_vars_match = self.__find_max_bipartite_match()
@@ -242,7 +242,7 @@ class ModelSolver:
 
     # Generates bipartite graph (bigraph) connetcting equations (nodes in U) with endogenous variables (nodes in V)
     # See https://en.wikipedia.org/wiki/Bipartite_graph for a discussion of bigraphs
-    def _gen_eqns_endo_vars_bigraph(self):
+    def __gen_eqns_endo_vars_bigraph(self):
         if self.__some_error:
             return
 
@@ -264,7 +264,7 @@ class ModelSolver:
     # Finds a maximum bipartite match (MBM) of bigraph connetcting equations (nodes in U) with endogenous variables (nodes in V)
     # See https://www.geeksforgeeks.org/maximum-bipartite-matching/ for more on MBM
     # Returns dict with matches (maps both ways, i.e. U-->V and U-->U)
-    def _find_max_bipartite_match(self):
+    def __find_max_bipartite_match(self):
         if self.__some_error:
             return
 
@@ -287,7 +287,7 @@ class ModelSolver:
 
     # Makes a directed graph (digraph) showing how endogenous variables affect every other endogenous variable
     # See https://en.wikipedia.org/wiki/Directed_graph for more about directed graphs
-    def _gen_model_digraph(self):
+    def __gen_model_digraph(self):
         if self.__some_error:
             return
 
@@ -308,7 +308,7 @@ class ModelSolver:
     # Makes a condencation of digraph of endogenous variables
     # Each node of condencation contains strongly connected components; this corresponds to the simulataneous model blocks
     # See https://en.wikipedia.org/wiki/Strongly_connected_component for more about strongly connected components
-    def _gen_condenced_model_digraph(self):
+    def __gen_condenced_model_digraph(self):
         if self.__some_error:
             return
 
@@ -326,7 +326,7 @@ class ModelSolver:
 
 
     # Augments condenced digraph with nodes and edges for exogenous variables in order to show what exogenous variables affect what strong components
-    def _gen_augmented_condenced_model_digraph(self):
+    def __gen_augmented_condenced_model_digraph(self):
         if self.__some_error:
             return
 
@@ -347,7 +347,7 @@ class ModelSolver:
     # Generates simulation code and blocks
     # Simulation code contains a tuple of tuples for each strong component
     # The tuple for each strong component contains objective function, and Jacobian matrix, and lists of the variables in the strong component
-    def _gen_sim_code_and_blocks(self):
+    def __gen_sim_code_and_blocks(self):
         if self.__some_error:
             return
 
@@ -388,7 +388,7 @@ class ModelSolver:
 
     # Generates symbolic objective functon and Jacobian matrix for a given strong component
     @staticmethod
-    def _gen_def_or_obj_fun_and_jac(eqns: tuple, endo_vars: tuple, exog_vars: tuple):
+    def __gen_def_or_obj_fun_and_jac(eqns: tuple, endo_vars: tuple, exog_vars: tuple):
         max, min = Max, Max
         endo_sym, exog_sym, obj_fun = [], [], []
         for endo_var in endo_vars:
@@ -565,7 +565,7 @@ class ModelSolver:
 
 
     # Solves one block of the model for a given time period
-    def _solve_block(self, def_fun, obj_fun, jac, endo_vars_info: tuple, exog_vars_info: tuple, output_array: np.array, period: int, jit: bool):
+    def __solve_block(self, def_fun, obj_fun, jac, endo_vars_info: tuple, exog_vars_info: tuple, output_array: np.array, period: int, jit: bool):
         endo_vars_names, endo_vars_lags, endo_vars_cols, = endo_vars_info
         exog_vars_names, exog_vars_lags, exog_vars_cols, = exog_vars_info
 
@@ -605,7 +605,7 @@ class ModelSolver:
 
     # Gets values from DataFrame via array view for speed
     # If shape of request > 0 then the request is sent to njit'ed method for speed
-    def _get_vals(self, array: np.array, cols: np.array, lags: np.array, period: int, jit: bool):
+    def __get_vals(self, array: np.array, cols: np.array, lags: np.array, period: int, jit: bool):
         if cols.shape[0] == 0:
             return np.array([], np.float64)
         else:
@@ -622,7 +622,7 @@ class ModelSolver:
     # Some weird stuff had to be implemented for njit to stop complaining
     @staticmethod
     @njit
-    def _get_vals_jit(array: np.array, cols: np.array, lags: np.array, period: int):
+    def __get_vals_jit(array: np.array, cols: np.array, lags: np.array, period: int):
         vals = np.array([0.0], dtype=np.float64)
         for col, lag in zip(cols, lags):
             vals = np.append(vals, array[period-lag, col])
@@ -632,7 +632,7 @@ class ModelSolver:
     # Gets values from DataFrame via array view
     # Runs if user sets jit to False
     @staticmethod
-    def _get_vals_nojit(array: np.array, cols: np.array, lags: np.array, period: int):
+    def __get_vals_nojit(array: np.array, cols: np.array, lags: np.array, period: int):
         vals = np.array([], dtype=np.float64)
         for col, lag in zip(cols, lags):
             vals = np.append(vals, array[period-lag, col])
@@ -641,7 +641,7 @@ class ModelSolver:
 
     # Solves root finding problem using simple Newton-Raphson method
     @staticmethod
-    def _newton_raphson(f, init, args=None, jac=None, tol=None, maxiter=None):
+    def __newton_raphson(f, init, args=None, jac=None, tol=None, maxiter=None):
         success = True
         status = 0
         x_i = init
@@ -744,7 +744,7 @@ class ModelSolver:
 
 
     # Returns the node in  which var is endogenous
-    def _find_var_node(self, var):
+    def __find_var_node(self, var):
         if any([var in self.__condenced_model_digraph.nodes[x]['members'] for x in self.__condenced_model_digraph.nodes()]):
             var_node = [var in self.__condenced_model_digraph.nodes[x]['members'] for x in self.__condenced_model_digraph.nodes()].index(True)
         elif var in self.__augmented_condenced_model_digraph.nodes(): 
@@ -766,7 +766,7 @@ class ModelSolver:
     
     
     ## Finds all exogenous variables that are ancestors to block
-    def _trace_to_exog_vars(self, block):
+    def __trace_to_exog_vars(self, block):
         var_node = len(self.__blocks)-block
         ancs_nodes = nx.ancestors(self.__augmented_condenced_model_digraph, var_node)
         
@@ -807,6 +807,6 @@ class ModelSolver:
 
     # Stole solution from https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
     @staticmethod
-    def _chunks(xs, n):
+    def __chunks(xs, n):
         n = max(1, n)
         return (xs[i:i+n] for i in range(0, len(xs), n))
