@@ -49,24 +49,24 @@ class ModelSolver:
 
     # Reads in equations and endogenous variables and does a number of operations, e.g. analyzing block structure using graph theory.
     def __init__(self, eqns: list, endo_vars: list):
-        self._some_error = False
-        self._lag_notation = '___LAG'
-        self._max_lag = 0
-        self._root_tolerance = 1e-7
-        self._max_iter = 10
+        self.__some_error = False
+        self.__lag_notation = '___LAG'
+        self.__max_lag = 0
+        self.__root_tolerance = 1e-7
+        self.__max_iter = 10
 
         print('-'*100)
         print('Initializing model...')
 
         # Model equations and endogenous variables are checked and stored as immutable tuples (as opposed to mutable lists)
-        self._eqns, self._endo_vars = self._init_model(eqns, endo_vars)
+        self.__eqns, self.__endo_vars = self.__init_model(eqns, endo_vars)
 
         print('* Analyzing model...')
 
         # Analyzing equation strings to determine variables, lags and coefficients
-        self._eqns_analyzed, self._var_mapping, self._lag_mapping = self._analyze_eqns()
+        self.__eqns_analyzed, self.__var_mapping, self.__lag_mapping = self.__analyze_eqns()
 
-        self._block_analyze_model()
+        self.__block_analyze_model()
 
         print('Finished')
         print('-'*100)
@@ -74,36 +74,36 @@ class ModelSolver:
 
     @property
     def eqns(self):
-        return self._eqns
+        return self.__eqns
 
     @property
     def endo_vars(self):
-        return self._endo_vars
+        return self.__endo_vars
 
     @property
     def exog_vars(self):
         vars = set()
-        for _, _, _, lag_mapping in self._eqns_analyzed:
+        for _, _, _, lag_mapping in self.__eqns_analyzed:
             for _, val in lag_mapping.items():
                 vars.update((val[0],))
-        return tuple(vars.difference(self._endo_vars))
+        return tuple(vars.difference(self.__endo_vars))
 
     @property
     def max_lag(self):
-        return self._max_lag
+        return self.__max_lag
 
     @property
     def root_tolerance(self):
-        return self._root_tolerance
+        return self.__root_tolerance
 
     @property
     def max_iter(self):
-        return self._max_iter
+        return self.__max_iter
 
     @property
     def last_solution(self):
         try:
-            return self._last_solution.iloc[self._max_lag:, :]
+            return self.__last_solution.iloc[self.__max_lag:, :]
         except AttributeError:
             print('No solution exists')
 
@@ -114,7 +114,7 @@ class ModelSolver:
             raise ValueError('Tolerance for termination must be of type float')
         if val <= 0:
             raise ValueError('Tolerance for termination must be positive')
-        self._root_tolerance = val
+        self.__root_tolerance = val
 
     @max_iter.setter
     def max_iter(self, val):
@@ -122,7 +122,7 @@ class ModelSolver:
             raise ValueError('Maximum number of iterations must be an integer')
         if val < 0:
             raise ValueError('Maximum number of iterations cannot be negative')
-        self._max_iter = val
+        self.__max_iter = val
 
 
     # Imports lists containing equations and endogenous variables stored as strings
@@ -131,14 +131,14 @@ class ModelSolver:
         print('* Importing equations')
         for i, eqn in enumerate(eqns):
             if eqn.strip() == '':
-                self._some_error = True
+                self.__some_error = True
                 raise ValueError('There are empty elements in equation list')
             eqns[i] = eqns[i].lower()
 
         print('* Importing endogenous variables')
         for endo_var in endo_vars:
             if endo_var.strip() == '':
-                self._some_error = True
+                self.__some_error = True
                 raise ValueError('There are empty elements in endogenous variable list')
             endo_vars[i] = endo_vars[i].lower()
 
@@ -147,7 +147,7 @@ class ModelSolver:
 
     # Analyzes equations of the model
     def _analyze_eqns(self):
-        if self._some_error:
+        if self.__some_error:
             return None, None
 
         print('\t* Analyzing equation strings')
@@ -155,8 +155,8 @@ class ModelSolver:
         eqns_analyzed = []
 
         var_mapping, lag_mapping = {}, {}
-        for eqn in self._eqns:
-            eqn_analyzed = (eqn, *self._analyze_eqn(eqn))
+        for eqn in self.__eqns:
+            eqn_analyzed = (eqn, *self.__analyze_eqn(eqn))
             eqns_analyzed += eqn_analyzed,
             var_mapping = {**var_mapping, **eqn_analyzed[2]}
             lag_mapping = {**lag_mapping, **eqn_analyzed[3]}
@@ -167,7 +167,7 @@ class ModelSolver:
     # Takes an equation string and parses it into coefficients (special care is taken to deal with scientific notation), variables, lags and operators/brackets
     # I've written my own parser in stead of using some existing because it needs to take care of then (-)-notation for lags
     def _analyze_eqn(self, eqn: str):
-        if self._some_error:
+        if self.__some_error:
             return
 
         parsed_eqn_with_lag_notation, var_mapping, lag_mapping = [], {}, {}
@@ -192,13 +192,13 @@ class ModelSolver:
                     parsed_eqn_with_lag_notation += str(xxx),
                 if is_var:
                     # Replace (-)-notation by LAG_NOTATION for lags and appends _ to the end to mark the end
-                    pfx = '' if lag == '' else ''.join([self._lag_notation, str(-int(lag[1:-1])), '_'])
+                    pfx = '' if lag == '' else ''.join([self.__lag_notation, str(-int(lag[1:-1])), '_'])
                     parsed_eqn_with_lag_notation += ''.join([xxx, pfx]),
                     var_mapping[''.join([xxx, lag])] = ''.join([xxx, pfx])
                     var_mapping[''.join([xxx, pfx])] = ''.join([xxx, lag])
                     lag_mapping[''.join([xxx, pfx])] = (xxx, 0 if lag == '' else -int(lag[1:-1]))
                     if lag != '':
-                        self._max_lag = max(self._max_lag, -int(lag.replace('(', '').replace(')', '')))
+                        self.__max_lag = max(self.__max_lag, -int(lag.replace('(', '').replace(')', '')))
                 if chr != ' ':
                     parsed_eqn_with_lag_notation += chr,
                 xxx, lag = '', ''
@@ -228,34 +228,34 @@ class ModelSolver:
     # Analysis is a sequence of operations using graph theory
     def _block_analyze_model(self):
         # Using graph theory to analyze equations using existing algorithms to establish minimum simultaneous blocks
-        self._eqns_endo_vars_bigraph = self._gen_eqns_endo_vars_bigraph()
-        self._eqns_endo_vars_match = self._find_max_bipartite_match()
-        self._model_digraph = self._gen_model_digraph()
-        self._condenced_model_digraph, self._condenced_model_node_varlist_mapping = self._gen_condenced_model_digraph()
-        self._augmented_condenced_model_digraph, self._augmented_condenced_model_node_varlist_mapping = self._gen_augmented_condenced_model_digraph()
+        self.__eqns_endo_vars_bigraph = self.__gen_eqns_endo_vars_bigraph()
+        self.__eqns_endo_vars_match = self.__find_max_bipartite_match()
+        self.__model_digraph = self.__gen_model_digraph()
+        self.__condenced_model_digraph, self.__condenced_model_node_varlist_mapping = self.__gen_condenced_model_digraph()
+        self.__augmented_condenced_model_digraph, self.__augmented_condenced_model_node_varlist_mapping = self.__gen_augmented_condenced_model_digraph()
         
-        self._node_varlit_mapping = {**self._condenced_model_node_varlist_mapping, **self._augmented_condenced_model_node_varlist_mapping}
+        self.__node_varlit_mapping = {**self.__condenced_model_node_varlist_mapping, **self.__augmented_condenced_model_node_varlist_mapping}
 
         # Generating everything needed to simulate model
-        self._sim_code, self._blocks = self._gen_sim_code_and_blocks()
+        self.__sim_code, self.__blocks = self.__gen_sim_code_and_blocks()
 
 
     # Generates bipartite graph (bigraph) connetcting equations (nodes in U) with endogenous variables (nodes in V)
     # See https://en.wikipedia.org/wiki/Bipartite_graph for a discussion of bigraphs
     def _gen_eqns_endo_vars_bigraph(self):
-        if self._some_error:
+        if self.__some_error:
             return
 
         print('\t* Generating bipartite graph connecting equations and endogenous variables')
 
         # Make nodes in bipartite graph with equations U (0) and endogenous variables in V (1)
         eqns_endo_vars_bigraph = nx.Graph()
-        eqns_endo_vars_bigraph.add_nodes_from([i for i, _ in enumerate(self._eqns)], bipartite=0)
-        eqns_endo_vars_bigraph.add_nodes_from(self._endo_vars, bipartite=1)
+        eqns_endo_vars_bigraph.add_nodes_from([i for i, _ in enumerate(self.__eqns)], bipartite=0)
+        eqns_endo_vars_bigraph.add_nodes_from(self.__endo_vars, bipartite=1)
 
         # Make edges between equations and endogenous variables
-        for i, eqns in enumerate(self._eqns_analyzed):
-            for endo_var in [x for x in eqns[2].keys() if x in self._endo_vars]:
+        for i, eqns in enumerate(self.__eqns_analyzed):
+            for endo_var in [x for x in eqns[2].keys() if x in self.__endo_vars]:
                 eqns_endo_vars_bigraph.add_edge(i, endo_var)
 
         return eqns_endo_vars_bigraph
@@ -265,20 +265,20 @@ class ModelSolver:
     # See https://www.geeksforgeeks.org/maximum-bipartite-matching/ for more on MBM
     # Returns dict with matches (maps both ways, i.e. U-->V and U-->U)
     def _find_max_bipartite_match(self):
-        if self._some_error:
+        if self.__some_error:
             return
 
         print('\t* Finding maximum bipartite match (MBM) (i.e. associating every equation with exactly one endogenus variable)')
 
         # Use maximum bipartite matching to make a one to one mapping between equations and endogenous variables
         try:
-            maximum_bipartite_match = nx.bipartite.maximum_matching(self._eqns_endo_vars_bigraph, [i for i, _ in enumerate(self._eqns)])
-            if len(maximum_bipartite_match)/2 < len(self._eqns):
-                self._some_error = True
+            maximum_bipartite_match = nx.bipartite.maximum_matching(self.__eqns_endo_vars_bigraph, [i for i, _ in enumerate(self.__eqns)])
+            if len(maximum_bipartite_match)/2 < len(self.__eqns):
+                self.__some_error = True
                 print('ERROR: Model is over or under spesified')
                 return
         except nx.AmbiguousSolution:
-            self._some_error = True
+            self.__some_error = True
             print('ERROR: Unable to analyze model')
             return
 
@@ -288,19 +288,19 @@ class ModelSolver:
     # Makes a directed graph (digraph) showing how endogenous variables affect every other endogenous variable
     # See https://en.wikipedia.org/wiki/Directed_graph for more about directed graphs
     def _gen_model_digraph(self):
-        if self._some_error:
+        if self.__some_error:
             return
 
         print('\t* Generating directed graph (DiGraph) connecting endogenous variables using bipartite graph and MBM')
 
         # Make nodes in directed graph of endogenous variables
         model_digraph = nx.DiGraph()
-        model_digraph.add_nodes_from(self._endo_vars)
+        model_digraph.add_nodes_from(self.__endo_vars)
 
         # Make directed edges showing how endogenous variables affect every other endogenous variables using bipartite graph and MBM
-        for edge in self._eqns_endo_vars_bigraph.edges():
-            if edge[0] != self._eqns_endo_vars_match[edge[1]]:
-                model_digraph.add_edge(edge[1], self._eqns_endo_vars_match[edge[0]])
+        for edge in self.__eqns_endo_vars_bigraph.edges():
+            if edge[0] != self.__eqns_endo_vars_match[edge[1]]:
+                model_digraph.add_edge(edge[1], self.__eqns_endo_vars_match[edge[0]])
 
         return model_digraph
 
@@ -309,13 +309,13 @@ class ModelSolver:
     # Each node of condencation contains strongly connected components; this corresponds to the simulataneous model blocks
     # See https://en.wikipedia.org/wiki/Strongly_connected_component for more about strongly connected components
     def _gen_condenced_model_digraph(self):
-        if self._some_error:
+        if self.__some_error:
             return
 
         print('\t* Finding condensation of DiGraph (i.e. finding minimum simulataneous equation blocks)')
 
         # Generate condensation graph of equation graph such that every node is a strong component of the equation graph
-        condenced_model_digraph = nx.condensation(self._model_digraph)
+        condenced_model_digraph = nx.condensation(self.__model_digraph)
 
         # Make a dictionary that associate every node of condensation with a list of variables
         node_vars_mapping = {}
@@ -327,17 +327,17 @@ class ModelSolver:
 
     # Augments condenced digraph with nodes and edges for exogenous variables in order to show what exogenous variables affect what strong components
     def _gen_augmented_condenced_model_digraph(self):
-        if self._some_error:
+        if self.__some_error:
             return
 
-        augmented_condenced_model_digraph = self._condenced_model_digraph.copy()
+        augmented_condenced_model_digraph = self.__condenced_model_digraph.copy()
 
         # Make edges between exogenous variables and strong components it is a part of
         node_vars_mapping = {}
-        for node in self._condenced_model_digraph.nodes():
-            for member in self._condenced_model_digraph.nodes[node]['members']:
-                for exog_var_adjacent_to_node in [val for key, val in self._eqns_analyzed[self._eqns_endo_vars_match[member]][2].items()
-                                                  if self._lag_notation not in val and key not in self._endo_vars]:
+        for node in self.__condenced_model_digraph.nodes():
+            for member in self.__condenced_model_digraph.nodes[node]['members']:
+                for exog_var_adjacent_to_node in [val for key, val in self.__eqns_analyzed[self.__eqns_endo_vars_match[member]][2].items()
+                                                  if self.__lag_notation not in val and key not in self.__endo_vars]:
                     augmented_condenced_model_digraph.add_edge(exog_var_adjacent_to_node, node)
                     node_vars_mapping[exog_var_adjacent_to_node] = exog_var_adjacent_to_node,
 
@@ -348,26 +348,26 @@ class ModelSolver:
     # Simulation code contains a tuple of tuples for each strong component
     # The tuple for each strong component contains objective function, and Jacobian matrix, and lists of the variables in the strong component
     def _gen_sim_code_and_blocks(self):
-        if self._some_error:
+        if self.__some_error:
             return
 
         print('\t* Generating simulation code (i.e. block-wise symbolic objective function, symbolic Jacobian matrix and lists of endogenous and exogenous variables)')
 
         sim_code, blocks = {}, {}
-        for i, node in enumerate(reversed(tuple(self._condenced_model_digraph.nodes()))):
+        for i, node in enumerate(reversed(tuple(self.__condenced_model_digraph.nodes()))):
             block_endo_vars, block_eqns_orig, block_eqns_lags, block_exog_vars = tuple(), tuple(), tuple(), set()
-            for member in self._condenced_model_digraph.nodes[node]['members']:
-                j = self._eqns_endo_vars_match[member]
-                eqns_analyzed = self._eqns_analyzed[j]
+            for member in self.__condenced_model_digraph.nodes[node]['members']:
+                j = self.__eqns_endo_vars_match[member]
+                eqns_analyzed = self.__eqns_analyzed[j]
                 block_endo_vars += member,
                 block_eqns_orig += eqns_analyzed[0],
                 block_eqns_lags += eqns_analyzed[1],
-                block_exog_vars.update([val for key, val in eqns_analyzed[2].items() if self._lag_notation not in key])
+                block_exog_vars.update([val for key, val in eqns_analyzed[2].items() if self.__lag_notation not in key])
 
             block_exog_vars.difference_update(set(block_endo_vars))
             block_exog_vars = tuple(block_exog_vars)
 
-            (def_fun, obj_fun, jac) = self._gen_def_or_obj_fun_and_jac(block_eqns_lags, block_endo_vars, block_exog_vars)
+            (def_fun, obj_fun, jac) = self.__gen_def_or_obj_fun_and_jac(block_eqns_lags, block_endo_vars, block_exog_vars)
             sim_code[i+1] = (
                 def_fun,
                 obj_fun,
@@ -427,16 +427,16 @@ class ModelSolver:
         Sets old_endo_vars as exogenous and new_endo_vars as endogenous and performs block analysis
         """
 
-        if all([x in self._endo_vars for x in old_endo_vars]) is False:
+        if all([x in self.__endo_vars for x in old_endo_vars]) is False:
             print('All variables in old_endo_vars are not endogenous')
             return
-        if any([x in self._endo_vars for x in new_endo_vars]):
+        if any([x in self.__endo_vars for x in new_endo_vars]):
             print('Some variables in new_endo_vars are endogenous')
             return
         
         print('Analyzing model...')
-        self._endo_vars = (*[x for x in self._endo_vars if x not in old_endo_vars], *new_endo_vars)
-        self._block_analyze_model()
+        self.__endo_vars = (*[x for x in self.__endo_vars if x not in old_endo_vars], *new_endo_vars)
+        self.__block_analyze_model()
         print('Finished')
 
 
@@ -445,7 +445,7 @@ class ModelSolver:
         Finds what block solves the given engoenous variable
         """
 
-        block = [key for key, val in self._blocks.items() if endo_var in val[0]]
+        block = [key for key, val in self.__blocks.items() if endo_var in val[0]]
         if block:
             return block[0]
         else:
@@ -458,9 +458,9 @@ class ModelSolver:
         """
 
         print('-'*100)
-        print('Model consists of {} equations in {} blocks'.format(len(self._eqns), len(self._blocks)))
-        print('{} of the blocks consist of simple definitions\n'.format(len([val[3] for _, val in self._blocks.items() if val[3]])))
-        for key, val in Counter(sorted([len(val[2]) for key, val in self._blocks.items()])).items():
+        print('Model consists of {} equations in {} blocks'.format(len(self.__eqns), len(self.__blocks)))
+        print('{} of the blocks consist of simple definitions\n'.format(len([val[3] for _, val in self.__blocks.items() if val[3]])))
+        for key, val in Counter(sorted([len(val[2]) for key, val in self.__blocks.items()])).items():
             print('{} blocks have {} equations'.format(val, key))
         print('-'*100)
 
@@ -470,7 +470,7 @@ class ModelSolver:
         Prints endogenous and exogenous variables and equations for every block in the model
         """
 
-        for key, _ in self._blocks.items():
+        for key, _ in self.__blocks.items():
             print(' '.join(['-'*50, 'Block', str(key), '-'*50]))
             self.show_block(key)
 
@@ -480,13 +480,13 @@ class ModelSolver:
         Prints endogenous and exogenous variables and equations for a given block
         """
 
-        block = self._blocks.get(i)
+        block = self.__blocks.get(i)
         if block:
             print(' '.join(['Block consists of', 'a definition' if block[3] else 'an equation or a system of equations']))
             print('\n{} endogenous variables:'.format(len(block[0])))
-            print('\n'.join([' '.join(x) for x in list(self._chunks(block[0], 25))]))
+            print('\n'.join([' '.join(x) for x in list(self.__chunks(block[0], 25))]))
             print('\n{} predetermined variables:'.format(len(block[1])))
-            print('\n'.join([' '.join(x) for x in list(self._chunks([self._var_mapping.get(x) for x in block[1]], 25))]))
+            print('\n'.join([' '.join(x) for x in list(self.__chunks([self.__var_mapping.get(x) for x in block[1]], 25))]))
             print('\n{} equations:'.format(len(block[2])))
             print('\n'.join(block[2]))
         else:
@@ -498,7 +498,7 @@ class ModelSolver:
         Solves the model for a given DataFrame
         """
 
-        if self._some_error:
+        if self.__some_error:
             return
 
         print('-'*100)
@@ -515,11 +515,11 @@ class ModelSolver:
             if not vars:
                 return (tuple([]), np.array([], dtype=int), np.array([], dtype=int))
             # Stole zip-solution from: https://stackoverflow.com/questions/21444338/transpose-nested-list-in-python
-            names, lags = tuple(map(list, zip(*[self._lag_mapping.get(x) for x in vars])))
+            names, lags = tuple(map(list, zip(*[self.__lag_mapping.get(x) for x in vars])))
             cols = tuple(var_col_index.get(x) for x in names)
             return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
 
-        first_period, last_period = self._max_lag, output_array.shape[0]-1
+        first_period, last_period = self.__max_lag, output_array.shape[0]-1
         periods = range(first_period, last_period+1)
         print('\tFirst period: {}, last period: {}'.format(output_df.index[first_period], output_df.index[last_period]))
         print('\tSolving')
@@ -528,9 +528,9 @@ class ModelSolver:
 
         for period in periods:
             print('.', end='')
-            for key, val in self._sim_code.items():
+            for key, val in self.__sim_code.items():
                 (def_fun, obj_fun, jac, endo_vars, exog_vars, _) = val
-                solution = self._solve_block(
+                solution = self.__solve_block(
                     def_fun,
                     obj_fun,
                     jac,
@@ -545,11 +545,11 @@ class ModelSolver:
 
                 if solution.get('status') == 2:
                     print('\nBlock {} consists of the following equations:'.format(key))
-                    print(*[x for x in self._blocks.get(key)[2]], sep='\n')
-                    ancs_exog_vars = self._trace_to_exog_vars(key)
+                    print(*[x for x in self.__blocks.get(key)[2]], sep='\n')
+                    ancs_exog_vars = self.__trace_to_exog_vars(key)
                     if ancs_exog_vars:
-                        _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self._var_mapping.get(x) for x in ancs_exog_vars))
-                        ancs_exog_vals = self._get_vals(output_array, ancs_exog_cols, ancs_exog_lags, period, jit)
+                        _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self.__var_mapping.get(x) for x in ancs_exog_vars))
+                        ancs_exog_vals = self.__get_vals(output_array, ancs_exog_cols, ancs_exog_lags, period, jit)
                         print('\nBlock {} traces back to the following exogenous variable values in {}:'.format(key, input_df.index[period]))
                         print(*['='.join([x,str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
                     raise ValueError('Block {} did not converge'.format(key))
@@ -559,9 +559,9 @@ class ModelSolver:
         print('\nFinished')
         print('-'*100)
 
-        self._last_solution = output_df
+        self.__last_solution = output_df
 
-        return output_df.iloc[self._max_lag:, :]
+        return output_df.iloc[self.__max_lag:, :]
 
 
     # Solves one block of the model for a given time period
@@ -574,26 +574,26 @@ class ModelSolver:
         if def_fun:
             solution = {}
             try:
-                solution['x'] = def_fun(tuple(self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period, jit)))
+                solution['x'] = def_fun(tuple(self.__get_vals(output_array, exog_vars_cols, exog_vars_lags, period, jit)))
                 solution['status'] = 0
             except ZeroDivisionError:
                 solution['x'] = np.nan
                 solution['status'] = 2
         else:
-            solution = self._newton_raphson(
+            solution = self.__newton_raphson(
                 obj_fun,
-                self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period, jit),
-                args = tuple(self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period, jit)),
+                self.__get_vals(output_array, endo_vars_cols, endo_vars_lags, period, jit),
+                args = tuple(self.__get_vals(output_array, exog_vars_cols, exog_vars_lags, period, jit)),
                 jac = jac,
-                tol = self._root_tolerance,
-                maxiter=self._max_iter
+                tol = self.__root_tolerance,
+                maxiter=self.__max_iter
                 )
             if all(np.isfinite(solution.get('x'))) is False:
                 solution['status'] = 2
             
         if solution.get('status') == 2:
-            endo_vars_vals = self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period, jit)
-            exog_vars_vals = self._get_vals(output_array, exog_vars_cols, exog_vars_lags, period, jit)
+            endo_vars_vals = self.__get_vals(output_array, endo_vars_cols, endo_vars_lags, period, jit)
+            exog_vars_vals = self.__get_vals(output_array, exog_vars_cols, exog_vars_lags, period, jit)
             print()
             print('\nEndogenous variables in block upon failure:')
             print(*['='.join([x,str(y)]) for x, y in zip(endo_vars_names, endo_vars_vals)], sep='\n')
@@ -613,9 +613,9 @@ class ModelSolver:
                 raise IndexError('Period is out of range')
             else:
                 if jit:
-                    return self._get_vals_jit(array, cols, lags, period)
+                    return self.__get_vals_jit(array, cols, lags, period)
                 else:
-                    return self._get_vals_nojit(array, cols, lags, period)
+                    return self.__get_vals_nojit(array, cols, lags, period)
 
 
     # Gets values from DataFrame via array view
@@ -672,18 +672,18 @@ class ModelSolver:
         Draws a directed graph of block in which variable is along with max number of ancestors and descendants.
         """
 
-        if self._some_error:
+        if self.__some_error:
             return
 
-        var_node = self._find_var_node(var)
+        var_node = self.__find_var_node(var)
 
-        ancs_nodes = nx.ancestors(self._augmented_condenced_model_digraph, var_node)
-        desc_nodes = nx.descendants(self._augmented_condenced_model_digraph, var_node)
+        ancs_nodes = nx.ancestors(self.__augmented_condenced_model_digraph, var_node)
+        desc_nodes = nx.descendants(self.__augmented_condenced_model_digraph, var_node)
 
-        max_ancr_nodes = {x for x in ancs_nodes if nx.shortest_path_length(self._augmented_condenced_model_digraph, x, var_node) <= max_ancs_gens}
-        max_desc_nodes = {x for x in desc_nodes if nx.shortest_path_length(self._augmented_condenced_model_digraph, var_node, x) <= max_desc_gens}
+        max_ancr_nodes = {x for x in ancs_nodes if nx.shortest_path_length(self.__augmented_condenced_model_digraph, x, var_node) <= max_ancs_gens}
+        max_desc_nodes = {x for x in desc_nodes if nx.shortest_path_length(self.__augmented_condenced_model_digraph, var_node, x) <= max_desc_gens}
 
-        subgraph = self._augmented_condenced_model_digraph.subgraph({var_node}.union(max_ancr_nodes).union(max_desc_nodes))
+        subgraph = self.__augmented_condenced_model_digraph.subgraph({var_node}.union(max_ancr_nodes).union(max_desc_nodes))
         graph_to_plot = nx.DiGraph()
 
         print(' '.join(['Graph of block containing {} with <={} generations of ancestors and <={} generations of decendants:'
@@ -692,10 +692,10 @@ class ModelSolver:
         # Loop over all nodes in subgraph (chosen variable, it's ancestors and decendants) and make nodes and edges in pyvis subgraph
         mapping = {}
         for node in subgraph.nodes():
-            if node in self._condenced_model_digraph:
-                node_label = '\n'.join(self._condenced_model_node_varlist_mapping[node])\
-                    if len(self._condenced_model_node_varlist_mapping[node]) < 10 else '***\nHUGE BLOCK\n***'
-                node_title = '<br>'.join(self._condenced_model_node_varlist_mapping[node])
+            if node in self.__condenced_model_digraph:
+                node_label = '\n'.join(self.__condenced_model_node_varlist_mapping[node])\
+                    if len(self.__condenced_model_node_varlist_mapping[node]) < 10 else '***\nHUGE BLOCK\n***'
+                node_title = '<br>'.join(self.__condenced_model_node_varlist_mapping[node])
                 if node == var_node:
                     node_size = 200
                     node_color = '#c4351c'
@@ -714,8 +714,8 @@ class ModelSolver:
             graph_to_plot.add_node(node, label=node_label, title=node_title, shape='circle', size=node_size, color=node_color)
 
             if isinstance(node, int):
-                mapping[node] =  ':\n'.join([' '.join(['Block', str(len(self._blocks)-node)]),
-                                            '\n'.join(self._condenced_model_node_varlist_mapping[node]) if len(self._condenced_model_node_varlist_mapping[node]) < 5 else '...'])
+                mapping[node] =  ':\n'.join([' '.join(['Block', str(len(self.__blocks)-node)]),
+                                            '\n'.join(self.__condenced_model_node_varlist_mapping[node]) if len(self.__condenced_model_node_varlist_mapping[node]) < 5 else '...'])
             else:
                 mapping[node] = node
 
@@ -745,9 +745,9 @@ class ModelSolver:
 
     # Returns the node in  which var is endogenous
     def _find_var_node(self, var):
-        if any([var in self._condenced_model_digraph.nodes[x]['members'] for x in self._condenced_model_digraph.nodes()]):
-            var_node = [var in self._condenced_model_digraph.nodes[x]['members'] for x in self._condenced_model_digraph.nodes()].index(True)
-        elif var in self._augmented_condenced_model_digraph.nodes(): 
+        if any([var in self.__condenced_model_digraph.nodes[x]['members'] for x in self.__condenced_model_digraph.nodes()]):
+            var_node = [var in self.__condenced_model_digraph.nodes[x]['members'] for x in self.__condenced_model_digraph.nodes()].index(True)
+        elif var in self.__augmented_condenced_model_digraph.nodes(): 
             var_node = var
         else:
             raise NameError('Variable is not in model')
@@ -759,21 +759,21 @@ class ModelSolver:
         Prints all exogenous variables that are ancestors to block
         """
 
-        if self._some_error:
+        if self.__some_error:
             return
 
-        print('\n'.join([' '.join(x) for x in list(self._chunks(self._trace_to_exog_vars(block), 25))]))
+        print('\n'.join([' '.join(x) for x in list(self.__chunks(self.__trace_to_exog_vars(block), 25))]))
     
     
     ## Finds all exogenous variables that are ancestors to block
     def _trace_to_exog_vars(self, block):
-        var_node = len(self._blocks)-block
-        ancs_nodes = nx.ancestors(self._augmented_condenced_model_digraph, var_node)
+        var_node = len(self.__blocks)-block
+        ancs_nodes = nx.ancestors(self.__augmented_condenced_model_digraph, var_node)
         
         ancs_exog_vars = tuple()
         for node in ancs_nodes:
-            if len(nx.ancestors(self._augmented_condenced_model_digraph, node)) == 0:
-                ancs_exog_vars += self._node_varlit_mapping.get(node)
+            if len(nx.ancestors(self.__augmented_condenced_model_digraph, node)) == 0:
+                ancs_exog_vars += self.__node_varlit_mapping.get(node)
 
         return ancs_exog_vars
 
@@ -783,22 +783,22 @@ class ModelSolver:
         Traces block back to exogenous values
         """
         try:
-            output_array = self._last_solution.to_numpy(dtype=np.float64, copy=True)
-            var_col_index = {var: i for i, var in enumerate(self._last_solution.columns.str.lower().to_list())}
+            output_array = self.__last_solution.to_numpy(dtype=np.float64, copy=True)
+            var_col_index = {var: i for i, var in enumerate(self.__last_solution.columns.str.lower().to_list())}
 
             def get_var_info(vars):
                 if not vars:
                     return (tuple([]), np.array([], dtype=int), np.array([], dtype=int))
                 # Stole zip-solution from: https://stackoverflow.com/questions/21444338/transpose-nested-list-in-python
-                names, lags = tuple(map(list, zip(*[self._lag_mapping.get(x) for x in vars])))
+                names, lags = tuple(map(list, zip(*[self.__lag_mapping.get(x) for x in vars])))
                 cols = tuple(var_col_index.get(x) for x in names)
                 return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
 
-            ancs_exog_vars = self._trace_to_exog_vars(block)
+            ancs_exog_vars = self.__trace_to_exog_vars(block)
             if ancs_exog_vars:
-                _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self._var_mapping.get(x) for x in ancs_exog_vars))
-                ancs_exog_vals = self._get_vals(output_array, ancs_exog_cols, ancs_exog_lags, period_index, False)
-                print('\nBlock {} traces back to the following exogenous variable values in {}:'.format(block, self._last_solution.index[period_index]))
+                _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self.__var_mapping.get(x) for x in ancs_exog_vars))
+                ancs_exog_vals = self.__get_vals(output_array, ancs_exog_cols, ancs_exog_lags, period_index, False)
+                print('\nBlock {} traces back to the following exogenous variable values in {}:'.format(block, self.__last_solution.index[period_index]))
                 print(*['='.join([x,str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
             
         except AttributeError:
