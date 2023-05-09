@@ -846,6 +846,7 @@ class ModelSolver:
             print('No solution exists')
 
 
+
     # Stole solution from https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
     @staticmethod
     def __chunks(xs, n):
