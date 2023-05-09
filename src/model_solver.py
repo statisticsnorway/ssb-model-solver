@@ -445,7 +445,7 @@ class ModelSolver:
         Finds what block solves the given engoenous variable
         """
 
-        block = [key for key, val in self.__blocks.items() if endo_var in val[0]]
+        block = [key for key, val in self.__blocks.items() if endo_var.lower() in val[0]]
         if block:
             return block[0]
         else:
@@ -682,7 +682,7 @@ class ModelSolver:
         if self.__some_error:
             return
 
-        var_node = self.__find_var_node(var)
+        var_node = self.__find_var_node(var.lower())
 
         ancs_nodes = nx.ancestors(self.__augmented_condenced_model_digraph, var_node)
         desc_nodes = nx.descendants(self.__augmented_condenced_model_digraph, var_node)
@@ -808,6 +808,16 @@ class ModelSolver:
                 print('\nBlock {} traces back to the following exogenous variable values in {}:'.format(block, self.__last_solution.index[period_index]))
                 print(*['='.join([x,str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
             
+        except AttributeError:
+            print('No solution exists')
+
+
+    def show_block_vals(self, block: int, period_index: int)->None:
+        """
+        TBA
+        """
+        try:
+            pass
         except AttributeError:
             print('No solution exists')
 
