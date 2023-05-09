@@ -831,8 +831,15 @@ class ModelSolver:
                 return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
 
             block = self.__blocks.get(i)
+
+            _, block_endo_lags, block_endo_cols = get_var_info(block[0])
+            block_endo_vals = self.__get_vals(output_array, block_endo_cols, block_endo_lags, period_index, False)
+            print('\nBlock {} has endogenous variables in {} that evaluate to:'.format(i, self.__last_solution.index[period_index]))
+            print(*['='.join([x, str(y)]) for x, y in zip([self.__var_mapping.get(x) for x in block[0]], block_endo_vals)], sep='\n')
+
             _, block_pred_lags, block_pred_cols = get_var_info(block[1])
             block_pred_vals = self.__get_vals(output_array, block_pred_cols, block_pred_lags, period_index, False)
+            print('\nBlock {} has predetermined variables in {} that evaluate to:'.format(i, self.__last_solution.index[period_index]))
             print(*['='.join([x, str(y)]) for x, y in zip([self.__var_mapping.get(x) for x in block[1]], block_pred_vals)], sep='\n')
 
         except AttributeError:
