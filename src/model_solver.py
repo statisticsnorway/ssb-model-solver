@@ -422,7 +422,7 @@ class ModelSolver:
         return None, obj_fun_out, jac_out
 
 
-    def switch_endo_var(self, old_endo_vars: list, new_endo_vars: list):
+    def switch_endo_var(self, old_endo_vars: list, new_endo_vars: list)->None:
         """
         Sets old_endo_vars as exogenous and new_endo_vars as endogenous and performs block analysis
         """
@@ -458,8 +458,10 @@ class ModelSolver:
         """
 
         print('-'*100)
-        print('Model consists of {} equations in {} blocks'.format(len(self.__eqns), len(self.__blocks)))
-        print('{} of the blocks consist of simple definitions\n'.format(len([val[3] for _, val in self.__blocks.items() if val[3]])))
+        print('Model consists of {} equations in {} blocks'
+              .format(len(self.__eqns), len(self.__blocks)))
+        print('{} of the blocks consist of simple definitions\n'
+              .format(len([val[3] for _, val in self.__blocks.items() if val[3]])))
         for key, val in Counter(sorted([len(val[2]) for key, val in self.__blocks.items()])).items():
             print('{} blocks have {} equations'.format(val, key))
         print('-'*100)
@@ -551,7 +553,7 @@ class ModelSolver:
                         _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self.__var_mapping.get(x) for x in ancs_exog_vars))
                         ancs_exog_vals = self.__get_vals(output_array, ancs_exog_cols, ancs_exog_lags, period, jit)
                         print('\nBlock {} traces back to the following exogenous variable values in {}:'.format(key, input_df.index[period]))
-                        print(*['='.join([x,str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
+                        print(*['='.join([x, str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
                     raise ValueError('Block {} did not converge'.format(key))
                 if solution.get('status') == 1:
                     print('Maximum number of iterations reached for block {} in {}'.format(key, input_df.index[period]))
@@ -806,18 +808,33 @@ class ModelSolver:
                 _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self.__var_mapping.get(x) for x in ancs_exog_vars))
                 ancs_exog_vals = self.__get_vals(output_array, ancs_exog_cols, ancs_exog_lags, period_index, False)
                 print('\nBlock {} traces back to the following exogenous variable values in {}:'.format(block, self.__last_solution.index[period_index]))
-                print(*['='.join([x,str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
+                print(*['='.join([x, str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
             
         except AttributeError:
             print('No solution exists')
 
 
-    def show_block_vals(self, block: int, period_index: int)->None:
+    def show_block_vals(self, i: int, period_index: int)->None:
         """
         TBA
         """
         try:
-            pass
+            output_array = self.__last_solution.to_numpy(dtype=np.float64, copy=True)
+            var_col_index = {var: i for i, var in enumerate(self.__last_solution.columns.str.lower().to_list())}
+            
+            def get_var_info(vars):
+                if not vars:
+                    return (tuple([]), np.array([], dtype=int), np.array([], dtype=int))
+                # Stole zip-solution from: https://stackoverflow.com/questions/21444338/transpose-nested-list-in-python
+                names, lags = tuple(map(list, zip(*[self.__lag_mapping.get(x) for x in vars])))
+                cols = tuple(var_col_index.get(x) for x in names)
+                return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
+
+            block = self.__blocks.get(i)
+            _, block_pred_lags, block_pred_cols = get_var_info(block[1])
+            block_pred_vals = self.__get_vals(output_array, block_pred_cols, block_pred_lags, period_index, False)
+            print(*['='.join([x, str(y)]) for x, y in zip([self.__var_mapping.get(x) for x in block[1]], block_pred_vals)], sep='\n')
+
         except AttributeError:
             print('No solution exists')
 
