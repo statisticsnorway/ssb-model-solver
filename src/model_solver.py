@@ -620,6 +620,7 @@ class ModelSolver:
 
     # Gets values from DataFrame via array view
     # Some weird stuff had to be implemented for njit to stop complaining
+    # Not sure if njit increases efficiency
     @staticmethod
     @njit
     def __get_vals_jit(array: np.array, cols: np.array, lags: np.array, period: int):
