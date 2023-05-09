@@ -440,7 +440,7 @@ class ModelSolver:
         print('Finished')
 
 
-    def find_endo_var(self, endo_var: str):
+    def find_endo_var(self, endo_var: str)->None:
         """
         Finds what block solves the given engoenous variable
         """
@@ -465,7 +465,7 @@ class ModelSolver:
         print('-'*100)
 
 
-    def show_blocks(self):
+    def show_blocks(self)->None:
         """
         Prints endogenous and exogenous variables and equations for every block in the model
         """
@@ -475,7 +475,7 @@ class ModelSolver:
             self.show_block(key)
 
 
-    def show_block(self, i: int):
+    def show_block(self, i: int)->None:
         """
         Prints endogenous and exogenous variables and equations for a given block
         """
@@ -493,7 +493,7 @@ class ModelSolver:
             print('Block {} is not in model'.format(block))
 
 
-    def solve_model(self, input_df: pd.DataFrame, jit=True):
+    def solve_model(self, input_df: pd.DataFrame, jit=True)->pd.DataFrame:
         """
         Solves the model for a given DataFrame
         """
@@ -667,7 +667,13 @@ class ModelSolver:
         return {'x': x_i, 'fun': f_i, 'success': success, 'status': status}
 
 
-    def draw_blockwise_graph(self, var: str, max_ancs_gens: int=5, max_desc_gens: int=5, max_nodes: int=50, figsize=(7.5, 7.5)):
+    def draw_blockwise_graph(
+            self, var: str,
+            max_ancs_gens: int=5,
+            max_desc_gens: int=5,
+            max_nodes: int=50,
+            figsize=(7.5, 7.5)
+            )->None:
         """
         Draws a directed graph of block in which variable is along with max number of ancestors and descendants.
         """
@@ -754,7 +760,7 @@ class ModelSolver:
         return var_node
     
     
-    def trace_to_exog_vars(self, block: str):
+    def trace_to_exog_vars(self, block: str) -> None:
         """
         Prints all exogenous variables that are ancestors to block
         """
@@ -778,7 +784,7 @@ class ModelSolver:
         return ancs_exog_vars
 
 
-    def trace_to_exog_vals(self, block: int, period_index: int):
+    def trace_to_exog_vals(self, block: int, period_index: int) -> None:
         """
         Traces block back to exogenous values
         """
