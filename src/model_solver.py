@@ -531,13 +531,13 @@ class ModelSolver:
         for period in periods:
             print('.', end='')
             for key, val in self.__sim_code.items():
-                (def_fun, obj_fun, jac, endo_vars, exog_vars, _) = val
+                (def_fun, obj_fun, jac, endo_vars, pred_vars, _) = val
                 solution = self.__solve_block(
                     def_fun,
                     obj_fun,
                     jac,
                     get_var_info(endo_vars),
-                    get_var_info(exog_vars),
+                    get_var_info(pred_vars),
                     output_array,
                     period,
                     jit=jit
@@ -567,16 +567,16 @@ class ModelSolver:
 
 
     # Solves one block of the model for a given time period
-    def __solve_block(self, def_fun, obj_fun, jac, endo_vars_info: tuple, exog_vars_info: tuple, output_array: np.array, period: int, jit: bool):
+    def __solve_block(self, def_fun, obj_fun, jac, endo_vars_info: tuple, pred_vars_info: tuple, output_array: np.array, period: int, jit: bool):
         endo_vars_names, endo_vars_lags, endo_vars_cols, = endo_vars_info
-        exog_vars_names, exog_vars_lags, exog_vars_cols, = exog_vars_info
+        pred_vars_names, pred_vars_lags, pred_vars_cols, = pred_vars_info
 
         # If block contains a definition this is calculated
         # Othwewise the objective function is sent to Newton-Raphson
         if def_fun:
             solution = {}
             try:
-                solution['x'] = def_fun(tuple(self.__get_vals(output_array, exog_vars_cols, exog_vars_lags, period, jit)))
+                solution['x'] = def_fun(tuple(self.__get_vals(output_array, pred_vars_cols, pred_vars_lags, period, jit)))
                 solution['status'] = 0
             except ZeroDivisionError:
                 solution['x'] = np.nan
@@ -585,7 +585,7 @@ class ModelSolver:
             solution = self.__newton_raphson(
                 obj_fun,
                 self.__get_vals(output_array, endo_vars_cols, endo_vars_lags, period, jit),
-                args = tuple(self.__get_vals(output_array, exog_vars_cols, exog_vars_lags, period, jit)),
+                args = tuple(self.__get_vals(output_array, pred_vars_cols, pred_vars_lags, period, jit)),
                 jac = jac,
                 tol = self.__root_tolerance,
                 maxiter=self.__max_iter
@@ -595,12 +595,12 @@ class ModelSolver:
             
         if solution.get('status') == 2:
             endo_vars_vals = self.__get_vals(output_array, endo_vars_cols, endo_vars_lags, period, jit)
-            exog_vars_vals = self.__get_vals(output_array, exog_vars_cols, exog_vars_lags, period, jit)
+            exog_vars_vals = self.__get_vals(output_array, pred_vars_cols, pred_vars_lags, period, jit)
             print()
             print('\nEndogenous variables in block upon failure:')
             print(*['='.join([x,str(y)]) for x, y in zip(endo_vars_names, endo_vars_vals)], sep='\n')
             print('\nPredetermined variables in block upon failure:')
-            print(*['='.join([x,str(y)]) for x, y in zip(exog_vars_names, exog_vars_vals)], sep='\n')
+            print(*['='.join([x,str(y)]) for x, y in zip(pred_vars_names, exog_vars_vals)], sep='\n')
 
         return solution
 
