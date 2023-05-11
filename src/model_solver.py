@@ -593,9 +593,9 @@ class ModelSolver:
             exog_vars_vals = self.__get_vals(output_array, pred_vars_cols, pred_vars_lags, period, jit)
             print()
             print('\nEndogenous variables in block upon failure:')
-            print(*['='.join([x,str(y)]) for x, y in zip(endo_vars_names, endo_vars_vals)], sep='\n')
+            print(*['='.join([x, str(y)]) for x, y in zip(endo_vars_names, endo_vars_vals)], sep='\n')
             print('\nPredetermined variables in block upon failure:')
-            print(*['='.join([x,str(y)]) for x, y in zip(pred_vars_names, exog_vars_vals)], sep='\n')
+            print(*['='.join([x, str(y)]) for x, y in zip(pred_vars_names, exog_vars_vals)], sep='\n')
 
         return solution
 
