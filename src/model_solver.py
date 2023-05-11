@@ -510,16 +510,7 @@ class ModelSolver:
         output_array = output_df.to_numpy(dtype=np.float64)
         var_col_index = {var: i for i, var in enumerate(output_df.columns.str.lower().to_list())}
 
-        # Function that gets name, column index and lag for variables
-        # Function uses cache since it's calle repeatedly
-        @cache
-        def get_var_info(vars):
-            if not vars:
-                return (tuple([]), np.array([], dtype=int), np.array([], dtype=int))
-            # Stole zip-solution from: https://stackoverflow.com/questions/21444338/transpose-nested-list-in-python
-            names, lags = tuple(map(list, zip(*[self.__lag_mapping.get(x) for x in vars])))
-            cols = tuple(var_col_index.get(x) for x in names)
-            return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
+        get_var_info = cache(self.gen_get_var_info(var_col_index))
 
         first_period, last_period = self.__max_lag, output_array.shape[0]-1
         periods = range(first_period, last_period+1)
@@ -795,13 +786,7 @@ class ModelSolver:
             output_array = self.__last_solution.to_numpy(dtype=np.float64, copy=True)
             var_col_index = {var: i for i, var in enumerate(self.__last_solution.columns.str.lower().to_list())}
 
-            def get_var_info(vars):
-                if not vars:
-                    return (tuple([]), np.array([], dtype=int), np.array([], dtype=int))
-                # Stole zip-solution from: https://stackoverflow.com/questions/21444338/transpose-nested-list-in-python
-                names, lags = tuple(map(list, zip(*[self.__lag_mapping.get(x) for x in vars])))
-                cols = tuple(var_col_index.get(x) for x in names)
-                return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
+            get_var_info = self.gen_get_var_info(var_col_index)
 
             ancs_exog_vars = self.__trace_to_exog_vars(block)
             if ancs_exog_vars:
@@ -822,14 +807,8 @@ class ModelSolver:
             output_array = self.__last_solution.to_numpy(dtype=np.float64, copy=True)
             var_col_index = {var: i for i, var in enumerate(self.__last_solution.columns.str.lower().to_list())}
             
-            def get_var_info(vars):
-                if not vars:
-                    return (tuple([]), np.array([], dtype=int), np.array([], dtype=int))
-                # Stole zip-solution from: https://stackoverflow.com/questions/21444338/transpose-nested-list-in-python
-                names, lags = tuple(map(list, zip(*[self.__lag_mapping.get(x) for x in vars])))
-                cols = tuple(var_col_index.get(x) for x in names)
-                return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
-
+            get_var_info = self.gen_get_var_info(var_col_index)
+            
             block = self.__blocks.get(i)
 
             _, block_endo_lags, block_endo_cols = get_var_info(block[0])
@@ -844,6 +823,18 @@ class ModelSolver:
 
         except AttributeError:
             print('No solution exists')
+
+
+    # Function that returns function that returns names, columns and lags for variables
+    def gen_get_var_info(self, var_col_index):
+        def get_var_info(vars):
+            if not vars:
+                return (tuple([]), np.array([], dtype=int), np.array([], dtype=int))
+            # Stole zip-solution from: https://stackoverflow.com/questions/21444338/transpose-nested-list-in-python
+            names, lags = tuple(map(list, zip(*[self.__lag_mapping.get(x) for x in vars])))
+            cols = tuple(var_col_index.get(x) for x in names)
+            return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
+        return get_var_info
 
 
     # Stole solution from https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
