@@ -48,7 +48,7 @@ class ModelSolver:
     """
 
     # Reads in equations and endogenous variables and does a number of operations, e.g. analyzing block structure using graph theory.
-    def __init__(self, eqns: list, endo_vars: list):
+    def __init__(self, eqns: list[str], endo_vars: list[str]):
         self.__some_error = False
         self.__lag_notation = '___LAG'
         self.__max_lag = 0
@@ -66,6 +66,7 @@ class ModelSolver:
         # Analyzing equation strings to determine variables, lags and coefficients
         self.__eqns_analyzed, self.__var_mapping, self.__lag_mapping = self.__analyze_eqns()
 
+        # Perform block analysis and ordering of equations
         self.__block_analyze_model()
 
         print('Finished')
@@ -109,7 +110,7 @@ class ModelSolver:
 
 
     @root_tolerance.setter
-    def root_tolerance(self, val):
+    def root_tolerance(self, val: float):
         if isinstance(val, float) is False:
             raise ValueError('Tolerance for termination must be of type float')
         if val <= 0:
@@ -117,7 +118,7 @@ class ModelSolver:
         self.__root_tolerance = val
 
     @max_iter.setter
-    def max_iter(self, val):
+    def max_iter(self, val: int):
         if isinstance(val, int) is False:
             raise ValueError('Maximum number of iterations must be an integer')
         if val < 0:
@@ -145,7 +146,7 @@ class ModelSolver:
         return tuple(eqns), tuple(endo_vars)
 
 
-    # Analyzes equations of the model
+    # Analyzes the equations of the model
     def __analyze_eqns(self):
         if self.__some_error:
             return None, None
@@ -234,7 +235,7 @@ class ModelSolver:
         self.__condenced_model_digraph, self.__condenced_model_node_varlist_mapping = self.__gen_condenced_model_digraph()
         self.__augmented_condenced_model_digraph, self.__augmented_condenced_model_node_varlist_mapping = self.__gen_augmented_condenced_model_digraph()
         
-        self.__node_varlit_mapping = {**self.__condenced_model_node_varlist_mapping, **self.__augmented_condenced_model_node_varlist_mapping}
+        self.__node_varlist_mapping = {**self.__condenced_model_node_varlist_mapping, **self.__augmented_condenced_model_node_varlist_mapping}
 
         # Generating everything needed to simulate model
         self.__sim_code, self.__blocks = self.__gen_sim_code_and_blocks()
@@ -388,7 +389,10 @@ class ModelSolver:
 
     # Generates symbolic objective functon and Jacobian matrix for a given strong component
     @staticmethod
-    def __gen_def_or_obj_fun_and_jac(eqns: tuple, endo_vars: tuple, exog_vars: tuple):
+    def __gen_def_or_obj_fun_and_jac(eqns: tuple[str],
+                                     endo_vars: tuple[str],
+                                     exog_vars: tuple[str]
+                                     ):
         max, min = Max, Max
         endo_sym, exog_sym, obj_fun = [], [], []
         for endo_var in endo_vars:
@@ -422,7 +426,7 @@ class ModelSolver:
         return None, obj_fun_out, jac_out
 
 
-    def switch_endo_var(self, old_endo_vars: list, new_endo_vars: list)->None:
+    def switch_endo_var(self, old_endo_vars: list[str], new_endo_vars: list[str])->None:
         """
         Sets old_endo_vars as exogenous and new_endo_vars as endogenous and performs block analysis
         """
@@ -773,7 +777,7 @@ class ModelSolver:
         ancs_exog_vars = tuple()
         for node in ancs_nodes:
             if len(nx.ancestors(self.__augmented_condenced_model_digraph, node)) == 0:
-                ancs_exog_vars += self.__node_varlit_mapping.get(node)
+                ancs_exog_vars += self.__node_varlist_mapping.get(node)
 
         return ancs_exog_vars
 
