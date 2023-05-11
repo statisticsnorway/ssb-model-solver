@@ -67,7 +67,10 @@ class ModelSolver:
         self.__eqns_analyzed, self.__var_mapping, self.__lag_mapping = self.__analyze_eqns()
 
         # Perform block analysis and ordering of equations
-        self.__block_analyze_model()
+        self.__eqns_endo_vars_match, self.__condenced_model_digraph, self.__augmented_condenced_model_digraph, self.__node_varlist_mapping = self.__block_analyze_model()
+
+        # Generating everything needed to simulate model
+        self.__sim_code, self.__blocks = self.__gen_sim_code_and_blocks()
 
         print('Finished')
         print('-'*100)
@@ -229,16 +232,15 @@ class ModelSolver:
     # Analysis is a sequence of operations using graph theory
     def __block_analyze_model(self):
         # Using graph theory to analyze equations using existing algorithms to establish minimum simultaneous blocks
-        self.__eqns_endo_vars_bigraph = self.__gen_eqns_endo_vars_bigraph()
-        self.__eqns_endo_vars_match = self.__find_max_bipartite_match()
-        self.__model_digraph = self.__gen_model_digraph()
-        self.__condenced_model_digraph, self.__condenced_model_node_varlist_mapping = self.__gen_condenced_model_digraph()
-        self.__augmented_condenced_model_digraph, self.__augmented_condenced_model_node_varlist_mapping = self.__gen_augmented_condenced_model_digraph()
+        eqns_endo_vars_bigraph = self.__gen_eqns_endo_vars_bigraph()
+        eqns_endo_vars_match = self.__find_max_bipartite_match(eqns_endo_vars_bigraph)
+        model_digraph = self.__gen_model_digraph(eqns_endo_vars_bigraph, eqns_endo_vars_match)
+        condenced_model_digraph, condenced_model_node_varlist_mapping = self.__gen_condenced_model_digraph(model_digraph)
+        augmented_condenced_model_digraph, augmented_condenced_model_node_varlist_mapping = self.__gen_augmented_condenced_model_digraph(condenced_model_digraph, eqns_endo_vars_match)
         
-        self.__node_varlist_mapping = {**self.__condenced_model_node_varlist_mapping, **self.__augmented_condenced_model_node_varlist_mapping}
+        node_varlist_mapping = {**condenced_model_node_varlist_mapping, **augmented_condenced_model_node_varlist_mapping}
 
-        # Generating everything needed to simulate model
-        self.__sim_code, self.__blocks = self.__gen_sim_code_and_blocks()
+        return eqns_endo_vars_match, condenced_model_digraph, augmented_condenced_model_digraph, node_varlist_mapping
 
 
     # Generates bipartite graph (bigraph) connetcting equations (nodes in U) with endogenous variables (nodes in V)
@@ -265,7 +267,7 @@ class ModelSolver:
     # Finds a maximum bipartite match (MBM) of bigraph connetcting equations (nodes in U) with endogenous variables (nodes in V)
     # See https://www.geeksforgeeks.org/maximum-bipartite-matching/ for more on MBM
     # Returns dict with matches (maps both ways, i.e. U-->V and U-->U)
-    def __find_max_bipartite_match(self):
+    def __find_max_bipartite_match(self, eqns_endo_vars_bigraph):
         if self.__some_error:
             return
 
@@ -273,7 +275,7 @@ class ModelSolver:
 
         # Use maximum bipartite matching to make a one to one mapping between equations and endogenous variables
         try:
-            maximum_bipartite_match = nx.bipartite.maximum_matching(self.__eqns_endo_vars_bigraph, [i for i, _ in enumerate(self.__eqns)])
+            maximum_bipartite_match = nx.bipartite.maximum_matching(eqns_endo_vars_bigraph, [i for i, _ in enumerate(self.__eqns)])
             if len(maximum_bipartite_match)/2 < len(self.__eqns):
                 self.__some_error = True
                 print('ERROR: Model is over or under spesified')
@@ -288,7 +290,7 @@ class ModelSolver:
 
     # Makes a directed graph (digraph) showing how endogenous variables affect every other endogenous variable
     # See https://en.wikipedia.org/wiki/Directed_graph for more about directed graphs
-    def __gen_model_digraph(self):
+    def __gen_model_digraph(self, eqns_endo_vars_bigraph, eqns_endo_vars_match):
         if self.__some_error:
             return
 
@@ -299,9 +301,9 @@ class ModelSolver:
         model_digraph.add_nodes_from(self.__endo_vars)
 
         # Make directed edges showing how endogenous variables affect every other endogenous variables using bipartite graph and MBM
-        for edge in self.__eqns_endo_vars_bigraph.edges():
-            if edge[0] != self.__eqns_endo_vars_match[edge[1]]:
-                model_digraph.add_edge(edge[1], self.__eqns_endo_vars_match[edge[0]])
+        for edge in eqns_endo_vars_bigraph.edges():
+            if edge[0] != eqns_endo_vars_match[edge[1]]:
+                model_digraph.add_edge(edge[1], eqns_endo_vars_match[edge[0]])
 
         return model_digraph
 
@@ -309,14 +311,14 @@ class ModelSolver:
     # Makes a condencation of digraph of endogenous variables
     # Each node of condencation contains strongly connected components; this corresponds to the simulataneous model blocks
     # See https://en.wikipedia.org/wiki/Strongly_connected_component for more about strongly connected components
-    def __gen_condenced_model_digraph(self):
+    def __gen_condenced_model_digraph(self, model_digraph):
         if self.__some_error:
             return
 
         print('\t* Finding condensation of DiGraph (i.e. finding minimum simulataneous equation blocks)')
 
         # Generate condensation graph of equation graph such that every node is a strong component of the equation graph
-        condenced_model_digraph = nx.condensation(self.__model_digraph)
+        condenced_model_digraph = nx.condensation(model_digraph)
 
         # Make a dictionary that associate every node of condensation with a list of variables
         node_vars_mapping = {}
@@ -327,17 +329,17 @@ class ModelSolver:
 
 
     # Augments condenced digraph with nodes and edges for exogenous variables in order to show what exogenous variables affect what strong components
-    def __gen_augmented_condenced_model_digraph(self):
+    def __gen_augmented_condenced_model_digraph(self, condenced_model_digraph, eqns_endo_vars_match):
         if self.__some_error:
             return
 
-        augmented_condenced_model_digraph = self.__condenced_model_digraph.copy()
+        augmented_condenced_model_digraph = condenced_model_digraph.copy()
 
         # Make edges between exogenous variables and strong components it is a part of
         node_vars_mapping = {}
-        for node in self.__condenced_model_digraph.nodes():
-            for member in self.__condenced_model_digraph.nodes[node]['members']:
-                for exog_var_adjacent_to_node in [val for key, val in self.__eqns_analyzed[self.__eqns_endo_vars_match[member]][2].items()
+        for node in condenced_model_digraph.nodes():
+            for member in condenced_model_digraph.nodes[node]['members']:
+                for exog_var_adjacent_to_node in [val for key, val in self.__eqns_analyzed[eqns_endo_vars_match[member]][2].items()
                                                   if self.__lag_notation not in val and key not in self.__endo_vars]:
                     augmented_condenced_model_digraph.add_edge(exog_var_adjacent_to_node, node)
                     node_vars_mapping[exog_var_adjacent_to_node] = exog_var_adjacent_to_node,
@@ -440,7 +442,11 @@ class ModelSolver:
         
         print('Analyzing model...')
         self.__endo_vars = (*[x for x in self.__endo_vars if x not in old_endo_vars], *new_endo_vars)
-        self.__block_analyze_model()
+        
+        self.__eqns_endo_vars_match, self.__condenced_model_digraph, self.__augmented_condenced_model_digraph, self.__node_varlist_mapping = self.__block_analyze_model()
+
+        self.__sim_code, self.__blocks = self.__gen_sim_code_and_blocks()
+
         print('Finished')
 
 
@@ -697,9 +703,9 @@ class ModelSolver:
         mapping = {}
         for node in subgraph.nodes():
             if node in self.__condenced_model_digraph:
-                node_label = '\n'.join(self.__condenced_model_node_varlist_mapping[node])\
-                    if len(self.__condenced_model_node_varlist_mapping[node]) < 10 else '***\nHUGE BLOCK\n***'
-                node_title = '<br>'.join(self.__condenced_model_node_varlist_mapping[node])
+                node_label = '\n'.join(self.__node_varlist_mapping[node])\
+                    if len(self.__node_varlist_mapping[node]) < 10 else '***\nHUGE BLOCK\n***'
+                node_title = '<br>'.join(self.__node_varlist_mapping[node])
                 if node == var_node:
                     node_size = 200
                     node_color = '#c4351c'
@@ -719,7 +725,7 @@ class ModelSolver:
 
             if isinstance(node, int):
                 mapping[node] =  ':\n'.join([' '.join(['Block', str(len(self.__blocks)-node)]),
-                                            '\n'.join(self.__condenced_model_node_varlist_mapping[node]) if len(self.__condenced_model_node_varlist_mapping[node]) < 5 else '...'])
+                                            '\n'.join(self.__node_varlist_mapping[node]) if len(self.__node_varlist_mapping[node]) < 5 else '...'])
             else:
                 mapping[node] = node
 
