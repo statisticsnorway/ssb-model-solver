@@ -428,7 +428,7 @@ class ModelSolver:
         return None, obj_fun_out, jac_out
 
 
-    def switch_endo_var(self, old_endo_vars: list[str], new_endo_vars: list[str])->None:
+    def switch_endo_var(self, old_endo_vars: list[str], new_endo_vars: list[str]):
         """
         Sets old_endo_vars as exogenous and new_endo_vars as endogenous and performs block analysis
         """
@@ -450,7 +450,7 @@ class ModelSolver:
         print('Finished')
 
 
-    def find_endo_var(self, endo_var: str)->None:
+    def find_endo_var(self, endo_var: str):
         """
         Finds what block solves the given engoenous variable
         """
@@ -477,7 +477,7 @@ class ModelSolver:
         print('-'*100)
 
 
-    def show_blocks(self)->None:
+    def show_blocks(self):
         """
         Prints endogenous and exogenous variables and equations for every block in the model
         """
@@ -487,7 +487,7 @@ class ModelSolver:
             self.show_block(key)
 
 
-    def show_block(self, i: int)->None:
+    def show_block(self, i: int):
         """
         Prints endogenous and exogenous variables and equations for a given block
         """
@@ -505,7 +505,7 @@ class ModelSolver:
             print('Block {} is not in model'.format(block))
 
 
-    def solve_model(self, input_df: pd.DataFrame, jit=True)->pd.DataFrame:
+    def solve_model(self, input_df: pd.DataFrame, jit=True) -> pd.DataFrame:
         """
         Solves the model for a given DataFrame
         """
@@ -788,7 +788,7 @@ class ModelSolver:
         return ancs_exog_vars
 
 
-    def trace_to_exog_vals(self, block: int, period_index: int) -> None:
+    def trace_to_exog_vals(self, block: int, period_index: int):
         """
         Traces block back to exogenous values
         """
@@ -809,7 +809,7 @@ class ModelSolver:
             print('No solution exists')
 
 
-    def show_block_vals(self, i: int, period_index: int)->None:
+    def show_block_vals(self, i: int, period_index: int):
         """
         TBA
         """
