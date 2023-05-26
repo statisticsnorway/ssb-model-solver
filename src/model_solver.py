@@ -843,6 +843,9 @@ class ModelSolver:
             # Stole zip-solution from: https://stackoverflow.com/questions/21444338/transpose-nested-list-in-python
             names, lags = tuple(map(list, zip(*[self._lag_mapping.get(x) for x in vars])))
             cols = tuple(var_col_index.get(x) for x in names)
+            if any(x is None for x in cols):
+                missing = [x for x, y in zip(names, cols) if y is None]
+                raise KeyError(f'{",".join(missing)} is not in DataFrame')
             return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
         return get_var_info
 
