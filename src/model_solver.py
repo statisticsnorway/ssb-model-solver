@@ -175,7 +175,7 @@ class ModelSolver:
             return
 
         parsed_eqn_with_lag_notation, var_mapping, lag_mapping = [], {}, {}
-        xxx, lag = '', ''
+        component, lag = '', ''
         is_num, is_var, is_lag, is_sci = False, False, False, False
 
         for chr in ''.join([eqn, ' ']):
@@ -184,28 +184,28 @@ class ModelSolver:
             is_lag = (is_var and chr == '(') or is_lag
             is_sci = (is_num and chr == 'e') or is_sci
 
-            if (is_var and chr == '(' and xxx in ['max', 'min', 'log', 'exp']):
-                parsed_eqn_with_lag_notation += ''.join([xxx, chr])
+            if (is_var and chr == '(' and component in ['max', 'min', 'log', 'exp']):
+                parsed_eqn_with_lag_notation += ''.join([component, chr])
                 is_var, is_lag = False, False
-                xxx, lag = '', ''
+                component, lag = '', ''
                 continue
 
             # Check if character is something other than a numeric, variable or lag and write numeric or variable to parsed equation
             if chr in ['=','+','-','*','/','(',')',',',' '] and not (is_lag or is_sci):
                 if is_num:
-                    parsed_eqn_with_lag_notation += str(xxx),
+                    parsed_eqn_with_lag_notation += str(component),
                 if is_var:
                     # Replace (-)-notation by LAG_NOTATION for lags and appends _ to the end to mark the end
                     pfx = '' if lag == '' else ''.join([self._lag_notation, str(-int(lag[1:-1])), '_'])
-                    parsed_eqn_with_lag_notation += ''.join([xxx, pfx]),
-                    var_mapping[''.join([xxx, lag])] = ''.join([xxx, pfx])
-                    var_mapping[''.join([xxx, pfx])] = ''.join([xxx, lag])
-                    lag_mapping[''.join([xxx, pfx])] = (xxx, 0 if lag == '' else -int(lag[1:-1]))
+                    parsed_eqn_with_lag_notation += ''.join([component, pfx]),
+                    var_mapping[''.join([component, lag])] = ''.join([component, pfx])
+                    var_mapping[''.join([component, pfx])] = ''.join([component, lag])
+                    lag_mapping[''.join([component, pfx])] = (component, 0 if lag == '' else -int(lag[1:-1]))
                     if lag != '':
                         self._max_lag = max(self._max_lag, -int(lag.replace('(', '').replace(')', '')))
                 if chr != ' ':
                     parsed_eqn_with_lag_notation += chr,
-                xxx, lag = '', ''
+                component, lag = '', ''
                 is_num, is_var, is_lag = False, False, False
                 continue
 
@@ -213,11 +213,11 @@ class ModelSolver:
                 is_sci = False
 
             if is_num:
-                xxx = ''.join([xxx, chr])
+                component = ''.join([component, chr])
                 continue
 
             if is_var and not is_lag:
-                xxx = ''.join([xxx, chr])
+                component = ''.join([component, chr])
                 continue
 
             if is_var and is_lag:
