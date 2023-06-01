@@ -516,7 +516,7 @@ class ModelSolver:
         print('-'*100)
         print('Solving model...')
 
-        output_df = input_df.copy(deep=True)
+        output_df = input_df.astype(float).copy(deep=True)
         output_array = output_df.to_numpy(dtype=np.float64)
         var_col_index = {var: i for i, var in enumerate(output_df.columns.str.lower().to_list())}
 
