@@ -439,10 +439,10 @@ class ModelSolver:
         if any([x in self.endo_vars for x in new_endo_vars]):
             print('Some variables in new_endo_vars are endogenous')
             return
-        
+
         print('Analyzing model...')
         self.endo_vars = (*[x for x in self._endo_vars if x not in old_endo_vars], *new_endo_vars)
-        
+
         self._eqns_endo_vars_match, self._condenced_model_digraph, self._augmented_condenced_model_digraph, self._node_varlist_mapping = self._block_analyze_model()
 
         self._sim_code, self._blocks = self._gen_sim_code_and_blocks()
@@ -593,7 +593,7 @@ class ModelSolver:
                 )
             if all(np.isfinite(solution.get('x'))) is False:
                 solution['status'] = 2
-            
+
         if solution.get('status') == 2:
             endo_vars_vals = self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period, jit)
             exog_vars_vals = self._get_vals(output_array, pred_vars_cols, pred_vars_lags, period, jit)
@@ -762,8 +762,8 @@ class ModelSolver:
         else:
             raise NameError('Variable is not in model')
         return var_node
-    
-    
+
+
     def trace_to_exog_vars(self, block: str):
         """
         Prints all exogenous variables that are ancestors to block
@@ -773,13 +773,13 @@ class ModelSolver:
             return
 
         print('\n'.join([' '.join(x) for x in list(self._chunks(self._trace_to_exog_vars(block), 25))]))
-    
-    
+
+
     ## Finds all exogenous variables that are ancestors to block
     def _trace_to_exog_vars(self, block):
         var_node = len(self._blocks)-block
         ancs_nodes = nx.ancestors(self._augmented_condenced_model_digraph, var_node)
-        
+
         ancs_exog_vars = tuple()
         for node in ancs_nodes:
             if len(nx.ancestors(self._augmented_condenced_model_digraph, node)) == 0:
@@ -804,7 +804,7 @@ class ModelSolver:
                 ancs_exog_vals = self._get_vals(output_array, ancs_exog_cols, ancs_exog_lags, period_index, False)
                 print('\nBlock {} traces back to the following exogenous variable values in {}:'.format(block, self.last_solution.index[period_index]))
                 print(*['='.join([x, str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
-            
+
         except AttributeError:
             print('No solution exists')
 
@@ -816,9 +816,9 @@ class ModelSolver:
         try:
             output_array = self.last_solution.to_numpy(dtype=np.float64, copy=True)
             var_col_index = {var: i for i, var in enumerate(self.last_solution.columns.str.lower().to_list())}
-            
+
             get_var_info = self.gen_get_var_info(var_col_index)
-            
+
             block = self._blocks.get(i)
 
             _, block_endo_lags, block_endo_cols = get_var_info(block[0])
