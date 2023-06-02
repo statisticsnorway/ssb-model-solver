@@ -549,31 +549,32 @@ class ModelSolver:
 
                 output_array[period, [var_col_index.get(x) for x in endo_vars]] = solution.get('x')
 
-                if solution.get('status') == 2:
-                    print('\nBlock {} consists of the following equations:'.format(key))
-                    print(*[x for x in self._blocks.get(key)[2]], sep='\n')
-                    ancs_exog_vars = self._trace_to_exog_vars(key)
-                    if ancs_exog_vars:
-                        _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self._var_mapping.get(x) for x in ancs_exog_vars))
-                        ancs_exog_vals = self._get_vals(output_array, ancs_exog_cols, ancs_exog_lags, period, jit)
-                        print('\nBlock {} traces back to the following exogenous variable values in {}:'.format(key, input_df.index[period]))
-                        print(*['='.join([x, str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
-                    raise ValueError('Block {} did not converge'.format(key))
                 if solution.get('status') == 1:
                     print('Maximum number of iterations reached for block {} in {}'.format(key, input_df.index[period]))
-
-        print('\nFinished')
-        print('-'*100)
+                if solution.get('status') == 2:
+                    break
+            else:
+                continue
+            break
 
         self._last_solution = output_df
+
+        if solution.get('status') == 2:
+            print('\nFailed to solve block {} in {}'.format(key, input_df.index[period]))
+            self.show_block_vals(key, period)
+            self.trace_to_exog_vals(key, period)
+        else:
+            print('\nFinished')
+
+        print('-'*100)
 
         return output_df.iloc[self.max_lag:, :]
 
 
     # Solves one block of the model for a given time period
     def _solve_block(self, def_fun, obj_fun, jac, endo_vars_info: tuple, pred_vars_info: tuple, output_array: np.array, period: int, jit: bool):
-        endo_vars_names, endo_vars_lags, endo_vars_cols, = endo_vars_info
-        pred_vars_names, pred_vars_lags, pred_vars_cols, = pred_vars_info
+        _, endo_vars_lags, endo_vars_cols, = endo_vars_info
+        _, pred_vars_lags, pred_vars_cols, = pred_vars_info
 
         # If block contains a definition this is calculated
         # Othwewise the objective function is sent to Newton-Raphson
@@ -597,15 +598,6 @@ class ModelSolver:
             if all(np.isfinite(solution.get('x'))) is False:
                 solution['status'] = 2
 
-        if solution.get('status') == 2:
-            endo_vars_vals = self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period, jit)
-            exog_vars_vals = self._get_vals(output_array, pred_vars_cols, pred_vars_lags, period, jit)
-            print()
-            print('\nEndogenous variables in block upon failure:')
-            print(*['='.join([x, str(y)]) for x, y in zip(endo_vars_names, endo_vars_vals)], sep='\n')
-            print('\nPredetermined variables in block upon failure:')
-            print(*['='.join([x, str(y)]) for x, y in zip(pred_vars_names, exog_vars_vals)], sep='\n')
-
         return solution
 
 
@@ -614,14 +606,14 @@ class ModelSolver:
     def _get_vals(self, array: np.array, cols: np.array, lags: np.array, period: int, jit: bool):
         if cols.shape[0] == 0:
             return np.array([], np.float64)
+
+        if any([period-x < 0 for x in lags]):
+            raise IndexError('Period is out of range')
         else:
-            if any([period-x < 0 for x in lags]):
-                raise IndexError('Period is out of range')
+            if jit:
+                return self._get_vals_jit(array, cols, lags, period)
             else:
-                if jit:
-                    return self._get_vals_jit(array, cols, lags, period)
-                else:
-                    return self._get_vals_nojit(array, cols, lags, period)
+                return self._get_vals_nojit(array, cols, lags, period)
 
 
     # Gets values from DataFrame via array view
@@ -658,6 +650,10 @@ class ModelSolver:
             if i == maxiter:
                 success = False
                 status = 1
+                break
+            if all(np.isfinite(np.array(args))) is False:
+                success = False
+                status = 2
                 break
             try:
                 x_i_new = x_i-np.matmul(np.linalg.inv(np.array(jac(x_i.tolist(), *args))), f_i)
@@ -796,8 +792,8 @@ class ModelSolver:
         Traces block back to exogenous values
         """
         try:
-            output_array = self.last_solution.to_numpy(dtype=np.float64, copy=True)
-            var_col_index = {var: i for i, var in enumerate(self.last_solution.columns.str.lower().to_list())}
+            output_array = self._last_solution.to_numpy(dtype=np.float64, copy=True)
+            var_col_index = {var: i for i, var in enumerate(self._last_solution.columns.str.lower().to_list())}
 
             get_var_info = self.gen_get_var_info(var_col_index)
 
@@ -805,7 +801,7 @@ class ModelSolver:
             if ancs_exog_vars:
                 _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self._var_mapping.get(x) for x in ancs_exog_vars))
                 ancs_exog_vals = self._get_vals(output_array, ancs_exog_cols, ancs_exog_lags, period_index, False)
-                print('\nBlock {} traces back to the following exogenous variable values in {}:'.format(block, self.last_solution.index[period_index]))
+                print('\nBlock {} traces back to the following exogenous variable values in {}:'.format(block, self._last_solution.index[period_index]))
                 print(*['='.join([x, str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
 
         except AttributeError:
@@ -817,8 +813,8 @@ class ModelSolver:
         TBA
         """
         try:
-            output_array = self.last_solution.to_numpy(dtype=np.float64, copy=True)
-            var_col_index = {var: i for i, var in enumerate(self.last_solution.columns.str.lower().to_list())}
+            output_array = self._last_solution.to_numpy(dtype=np.float64, copy=True)
+            var_col_index = {var: i for i, var in enumerate(self._last_solution.columns.str.lower().to_list())}
 
             get_var_info = self.gen_get_var_info(var_col_index)
 
@@ -831,7 +827,7 @@ class ModelSolver:
 
             _, block_pred_lags, block_pred_cols = get_var_info(block[1])
             block_pred_vals = self._get_vals(output_array, block_pred_cols, block_pred_lags, period_index, False)
-            print('\nBlock {} has predetermined variables in {} that evaluate to:'.format(i, self.last_solution.index[period_index]))
+            print('\nBlock {} has predetermined variables in {} that evaluate to:'.format(i, self._last_solution.index[period_index]))
             print(*['='.join([x, str(y)]) for x, y in zip([self._var_mapping.get(x) for x in block[1]], block_pred_vals)], sep='\n')
 
         except AttributeError:
