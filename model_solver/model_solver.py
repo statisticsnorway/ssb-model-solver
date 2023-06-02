@@ -237,7 +237,7 @@ class ModelSolver:
         model_digraph = self._gen_model_digraph(eqns_endo_vars_bigraph, eqns_endo_vars_match)
         condenced_model_digraph, condenced_model_node_varlist_mapping = self._gen_condenced_model_digraph(model_digraph)
         augmented_condenced_model_digraph, augmented_condenced_model_node_varlist_mapping = self._gen_augmented_condenced_model_digraph(condenced_model_digraph, eqns_endo_vars_match)
-        
+
         node_varlist_mapping = {**condenced_model_node_varlist_mapping, **augmented_condenced_model_node_varlist_mapping}
 
         return eqns_endo_vars_match, condenced_model_digraph, augmented_condenced_model_digraph, node_varlist_mapping
@@ -512,6 +512,9 @@ class ModelSolver:
 
         if self._some_error:
             return
+
+        if all(np.issubdtype(input_df[x].dtype, np.number) for x in input_df.columns) is False:
+            raise TypeError(f'All columns in input_df must be numeric')
 
         print('-'*100)
         print('Solving model...')
