@@ -1,6 +1,7 @@
-# model-solver
+# ModelSolver
 
-`ModelSolver` is a class that defines, block analyzes and solves dynamic and algebraic models numerically. See [documentation](https://github.com/statisticsnorway/model-solver/blob/main/model-solver.pdf) for detailed information about theory and implementation of the class.
+`ModelSolver` is a class that defines, block analyzes and solves dynamic and algebraic models numerically.
+See [documentation](https://github.com/statisticsnorway/model-solver/blob/main/model-solver.pdf) for detailed information about theory and implementation of the class.
 
 Opprettet av:
 Magnus Helliesen <mkh@ssb.no>
@@ -35,9 +36,16 @@ Let `equations = ['x+y = 1', 'x-y = 2']` and `endogenous = ['x', 'y']`, then the
 model = ModelSolver(equations, endogenous)
 ```
 
-When initialized, the class reads in the equations, analyzes them for any lags, before it block analyzes it to find the smalles model blocks that must be solved simultaneously. Note that ModelSolver is not case sensitive, so 'x' is the same as 'X', both in equations, lists and dataframe (below).
+When initialized, the class reads in the equations, analyzes them for any lags, before it block analyzes it to find the smalles model blocks that must be solved simultaneously.
+Note that ModelSolver is not case sensitive, such that 'x' and 'X' are the same, both in equations, lists and dataframe (below).
 
 When the class is finished initializing, the user can call the following methods:
 * `solution = model.solve(dataframe)` where `dataframe` is a **Pandas** dataframe containing initial values for the endogenous variables and values for the exogenous variables. `solution` is a dataframe with same dimensions as `dataframe` containing the solutions for the endogenous variables.
+* `model.switch_endo_vars(old_endo_var, new_endo_var)` switches the endogenous variables `old_endo_var` for `new_endo_var`.
+* `model.describe()` writes out information about the model: the number of blocks, the size of the blocks etc.
+* `model.find_endo_var('var')` returns the block number in which `var` is solved for.
+* `model.show_block(block_number)` returns information about the block: endogenous variables, predetermined variables and equations.
+* `model.show_blocks()` returns information about all blocks.
+* `model.trace_to_exog_vars(block_nunber)` traces back to the exogenous variables that may affect the block.
+* `model.trace_to_exog_vals(block_nunber, period_index)` traces back to the exogenous variable values for the period.
 * `model.draw_blockwise_graph(variable, maximum_ancestor_generations, maximum_decendants_generations)` where `variable` is a variable of interest, and `maximum_ancestor_generations` and `maximum_decendants_generations`are non-negative integers that governs the number of generations before and after the variable to be graphed. The output is a HTML-file with a relational graph.
-* More TBA
