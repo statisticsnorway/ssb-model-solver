@@ -15,7 +15,7 @@ matplotlib = "^3.7.1"
 numba = "^0.57.0"
 tornado = "6.3.2"
 requests = "2.31.0"
-cryptography = "41.0.0"
+cryptography = "41.0.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.3"
