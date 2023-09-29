@@ -15,36 +15,53 @@ from numba import njit
 
 class ModelSolver:
     """
-    EXAMPLE OF USE USE:
+    ModelSolver is designed to handle and solve mathematical models represented by a system of equations.
+    It supports various mathematical functions such as min, max, log, and exp.
+    This class allows you to initialize a model with a list of equations and endogenous variables.
+    It subsequently solves the model using input data stored in a Pandas DataFrame.
 
-    Let "equations" and "endogenous" be lists containing equations and endogenous variables, respectively, stored as strings, e.g.
+    Usage Example:
+
+    Let `equations` and `endogenous` be lists containing equations and endogenous variables, respectively, stored as strings, e.g.,
 
         equations = [
-            'x+y=A',
-            'x/y=B'
+            'x + y = A',
+            'x / y = B'
         ]
         endogenous = [
             'x',
             'y'
         ]
 
-    where 'A' and 'B' are exogenous variables
-    The solver supports the mathematical functions min, max, log and exp
+    where 'A' and 'B' are exogenous variables.
 
-    A class instance called "model" is initialized by
+    To initialize a ModelSolver instance, use:
 
         model = ModelSolver(equations, endogenous)
 
-    This reads in the equations and endogenous variables and perform block analysis and ordering and generates simulation code
-    Upon completion, the model is ready to be solved subject to data (exogenous and initial values of endogenous variables) in a Pandas DataFrame
-    Let "input_df" be a dataframe containing data on A and B and initial values for x and y. Then the model can be solved by invoking
+    This reads in the equations and endogenous variables, performs block analysis and ordering, and generates simulation code.
+
+    To solve the model using input data in a Pandas DataFrame, let's assume you have a DataFrame named "input_df" containing data on 'A' and 'B' as well as initial values for 'x' and 'y'. You can solve the model by invoking:
 
         solution_df = model.solve_model(input_df)
 
-    Now "solution_df" is a Pandas DataFrame with exactly the same dimensions as "input_df", but where the endogenous variables are replaced by the solutions to the model
-    The last solution is also stored in "model.last_solution"
+    Now, "solution_df" is a Pandas DataFrame with the same dimensions as "input_df," but with the endogenous variables replaced by the solutions to the model. The last solution is also stored in "model.last_solution."
 
-    ModelSolver also has a number of methods for analysis (TBA)
+    Attributes
+    ----------
+    last_solution : pandas DataFrame
+        The last solved solution.
+
+    Methods
+    -------
+    solve_model(input_df)
+        Solves the model based on input data in a Pandas DataFrame.
+        Returns a DataFrame with the same dimensions as input_df.
+
+    Analysis Methods
+    ---------------
+    (TBA - To Be Added)
+
     """
 
     # Reads in equations and endogenous variables and does a number of operations, e.g. analyzing block structure using graph theory.
