@@ -15,36 +15,53 @@ from numba import njit
 
 class ModelSolver:
     """
-    EXAMPLE OF USE USE:
+    ModelSolver is designed to handle and solve mathematical models represented by a system of equations.
+    It supports various mathematical functions such as min, max, log, and exp.
+    This class allows you to initialize a model with a list of equations and endogenous variables.
+    It subsequently solves the model using input data stored in a Pandas DataFrame.
 
-    Let "equations" and "endogenous" be lists containing equations and endogenous variables, respectively, stored as strings, e.g.
+    Usage Example:
+
+    Let `equations` and `endogenous` be lists containing equations and endogenous variables, respectively, stored as strings, e.g.,
 
         equations = [
-            'x+y=A',
-            'x/y=B'
+            'x + y = A',
+            'x / y = B'
         ]
         endogenous = [
             'x',
             'y'
         ]
 
-    where 'A' and 'B' are exogenous variables
-    The solver supports the mathematical functions min, max, log and exp
+    where 'A' and 'B' are exogenous variables.
 
-    A class instance called "model" is initialized by
+    To initialize a ModelSolver instance, use:
 
         model = ModelSolver(equations, endogenous)
 
-    This reads in the equations and endogenous variables and perform block analysis and ordering and generates simulation code
-    Upon completion, the model is ready to be solved subject to data (exogenous and initial values of endogenous variables) in a Pandas DataFrame
-    Let "input_df" be a dataframe containing data on A and B and initial values for x and y. Then the model can be solved by invoking
+    This reads in the equations and endogenous variables, performs block analysis and ordering, and generates simulation code.
+
+    To solve the model using input data in a Pandas DataFrame, let's assume you have a DataFrame named "input_df" containing data on 'A' and 'B' as well as initial values for 'x' and 'y'. You can solve the model by invoking:
 
         solution_df = model.solve_model(input_df)
 
-    Now "solution_df" is a Pandas DataFrame with exactly the same dimensions as "input_df", but where the endogenous variables are replaced by the solutions to the model
-    The last solution is also stored in "model.last_solution"
+    Now, "solution_df" is a Pandas DataFrame with the same dimensions as "input_df," but with the endogenous variables replaced by the solutions to the model. The last solution is also stored in "model.last_solution."
 
-    ModelSolver also has a number of methods for analysis (TBA)
+    Attributes
+    ----------
+    last_solution : pandas DataFrame
+        The last solved solution.
+
+    Methods
+    -------
+    solve_model(input_df)
+        Solves the model based on input data in a Pandas DataFrame.
+        Returns a DataFrame with the same dimensions as input_df.
+
+    Analysis Methods
+    ---------------
+    (TBA - To Be Added)
+
     """
 
     # Reads in equations and endogenous variables and does a number of operations, e.g. analyzing block structure using graph theory.
@@ -429,9 +446,7 @@ class ModelSolver:
 
 
     def switch_endo_var(self, old_endo_vars: list[str], new_endo_vars: list[str]):
-        """
-        Sets old_endo_vars as exogenous and new_endo_vars as endogenous and performs block analysis
-        """
+
 
         if all([x in self.endo_vars for x in old_endo_vars]) is False:
             print('All variables in old_endo_vars are not endogenous')
@@ -464,7 +479,34 @@ class ModelSolver:
 
     def describe(self):
         """
-        Describes model, that is number of equations, number of simultaneous blocks and how many equations are in each block
+        Sets old_endo_vars as exogenous and new_endo_vars as endogenous and performs block analysis.
+
+        Parameters:
+        ----------
+        old_endo_vars : list of str
+            List of old endogenous variables to be switched to exogenous.
+
+        new_endo_vars : list of str
+            List of new endogenous variables to be switched from exogenous.
+
+        Returns:
+        -------
+        None
+
+        Notes:
+        ------
+        This function switches the endogenous and exogenous status of variables and performs block analysis on the model.
+
+        Raises:
+        ------
+        ValueError:
+            If any variable in `old_endo_vars` is not in the current list of endogenous variables.
+            If any variable in `new_endo_vars` is already in the list of endogenous variables.
+
+        Example:
+        --------
+        >>> model = YourModelClass()
+        >>> model.switch_endo_var(['var1', 'var2'], ['var3', 'var4'])
         """
 
         print('-'*100)
@@ -479,7 +521,65 @@ class ModelSolver:
 
     def show_blocks(self):
         """
-        Prints endogenous and exogenous variables and equations for every block in the model
+        Prints endogenous and exogenous variables and equations for every block in the model.
+
+        Iterates through all blocks in the model and calls the `show_block` function to display their details.
+
+        Returns:
+        -------
+        None
+
+        Example:
+        --------
+        >>> model = YourModelClass()
+        >>> model.show_blocks()
+
+        --------------------------------------------------
+        Block 1
+        --------------------------------------------------
+        Endogenous Variables:
+        - var1
+        - var2
+
+        Exogenous Variables:
+        - exog_var1
+        - exog_var2
+
+        Equations:
+        - eqn1: var1 = exog_var1 + exog_var2
+        - eqn2: var2 = var1 + exog_var2
+
+        --------------------------------------------------
+        Block 2
+        --------------------------------------------------
+        Endogenous Variables:
+        - var3
+        - var4
+
+        Exogenous Variables:
+        - exog_var3
+        - exog_var4
+
+        Equations:
+        - eqn3: var3 = exog_var3 + exog_var4
+        - eqn4: var4 = var3 + exog_var4
+
+        ...
+
+        --------------------------------------------------
+        Block n
+        --------------------------------------------------
+        Endogenous Variables:
+        - var_n1
+        - var_n2
+
+        Exogenous Variables:
+        - exog_var_n1
+        - exog_var_n2
+
+        Equations:
+        - eqn_n1: var_n1 = exog_var_n1 + exog_var_n2
+        - eqn_n2: var_n2 = var_n1 + exog_var_n2
         """
 
         for key, _ in self._blocks.items():
@@ -489,7 +589,41 @@ class ModelSolver:
 
     def show_block(self, i: int):
         """
-        Prints endogenous and exogenous variables and equations for a given block
+        Prints endogenous and exogenous variables and equations for a given block.
+
+        Parameters:
+        -----------
+        i : int
+            The index of the block to display.
+
+        Returns:
+        --------
+        None
+
+        Example:
+        --------
+        >>> model = YourModelClass()
+        >>> model.show_block(1)
+
+        Block consists of an equation or a system of equations
+
+        5 endogenous variables:
+        - var1
+        - var2
+        - var3
+        - var4
+        - var5
+
+        3 predetermined variables:
+        - pred_var1
+        - pred_var2
+        - pred_var3
+
+        4 equations:
+        - eqn1: var1 = pred_var1 + pred_var2
+        - eqn2: var2 = var1 + pred_var2
+        - eqn3: var3 = pred_var2 + pred_var3
+        - eqn4: var4 = var3 + pred_var1
         """
 
         block = self._blocks.get(i)
@@ -507,7 +641,32 @@ class ModelSolver:
 
     def solve_model(self, input_df: pd.DataFrame, jit=True) -> pd.DataFrame:
         """
-        Solves the model for a given DataFrame
+        Solves the model for a given DataFrame.
+
+        Parameters:
+        -----------
+        input_df : pd.DataFrame
+            A DataFrame containing input data for the model.
+
+        jit : bool, optional
+            Flag indicating whether to use just-in-time (JIT) compilation for solving equations.
+            Default is True.
+
+        Returns:
+        --------
+        pd.DataFrame
+            A DataFrame containing the model's output data.
+
+        Raises:
+        -------
+        TypeError:
+            If any column in `input_df` is not of numeric data type.
+
+        Example:
+        --------
+        >>> model = YourModelClass()
+        >>> input_data = pd.DataFrame({'var1': [1.0, 2.0, 3.0], 'var2': [0.5, 1.0, 1.5]})
+        >>> output_data = model.solve_model(input_data)
         """
 
         if self._some_error:
@@ -678,7 +837,35 @@ class ModelSolver:
             figsize=(7.5, 7.5)
             ):
         """
-        Draws a directed graph of block in which variable is along with max number of ancestors and descendants.
+        Draws a directed graph of a block containing the given variable with a limited number of ancestors and descendants.
+
+        Parameters:
+        -----------
+        var : str
+            The variable for which the blockwise graph will be drawn.
+
+        max_ancs_gens : int, optional
+            Maximum number of generations of ancestors to include in the graph. Default is 5.
+
+        max_desc_gens : int, optional
+            Maximum number of generations of descendants to include in the graph. Default is 5.
+
+        max_nodes : int, optional
+            Maximum number of nodes to include in the graph. If the graph has more nodes, it won't be plotted. Default is 50.
+
+        figsize : tuple, optional
+            A tuple specifying the width and height of the figure for the graph. Default is (7.5, 7.5).
+
+        Returns:
+        --------
+        None
+
+        Example:
+        --------
+        >>> model = YourModelClass()
+        >>> model.draw_blockwise_graph('var1', max_ancs_gens=3, max_desc_gens=2, max_nodes=30, figsize=(10, 10))
+
+        Draws a directed graph of the block containing 'var1' with up to 3 generations of ancestors and 2 generations of descendants.
         """
 
         if self._some_error:
@@ -765,7 +952,26 @@ class ModelSolver:
 
     def trace_to_exog_vars(self, block: str):
         """
-        Prints all exogenous variables that are ancestors to block
+        Prints all exogenous variables that are ancestors to the given block.
+
+        Parameters:
+        -----------
+        block : str
+            The block for which exogenous variables will be traced.
+
+        Returns:
+        --------
+        None
+
+        Example:
+        --------
+        >>> model = YourModelClass()
+        >>> model.trace_to_exog_vars('Block1')
+
+        exog_var1
+        exog_var2
+        exog_var3
+        ...
         """
 
         if self._some_error:
@@ -789,8 +995,32 @@ class ModelSolver:
 
     def trace_to_exog_vals(self, block: int, period_index: int):
         """
-        Traces block back to exogenous values
+        Traces the given block back to exogenous values and prints those values.
+
+        Parameters:
+        -----------
+        block : int
+            The block to be traced back to exogenous values.
+
+        period_index : int
+            The index of the period for which exogenous values will be traced.
+
+        Returns:
+        --------
+        None
+
+        Example:
+        --------
+        >>> model = YourModelClass()
+        >>> model.trace_to_exog_vals(1, 3)
+
+        Block 1 traces back to the following exogenous variable values in 2023-01-04:
+        exog_var1=12.5
+        exog_var2=8.2
+        exog_var3=10.0
+        ...
         """
+
         try:
             output_array = self._last_solution.to_numpy(dtype=np.float64, copy=True)
             var_col_index = {var: i for i, var in enumerate(self._last_solution.columns.str.lower().to_list())}
@@ -810,8 +1040,36 @@ class ModelSolver:
 
     def show_block_vals(self, i: int, period_index: int):
         """
-        TBA
+        Prints the values of endogenous and predetermined variables in a given block for a specific period.
+
+        Parameters:
+        -----------
+        i : int
+            The index of the block for which variable values will be displayed.
+
+        period_index : int
+            The index of the period for which variable values will be shown.
+
+        Returns:
+        --------
+        None
+
+        Example:
+        --------
+        >>> model = YourModelClass()
+        >>> model.show_block_vals(1, 3)
+
+        Block 1 has endogenous variables in 2023-01-04 that evaluate to:
+        var1=10.5
+        var2=15.2
+        ...
+
+        Block 1 has predetermined variables in 2023-01-04 that evaluate to:
+        pred_var1=8.1
+        pred_var2=9.7
+        ...
         """
+
         try:
             output_array = self._last_solution.to_numpy(dtype=np.float64, copy=True)
             var_col_index = {var: i for i, var in enumerate(self._last_solution.columns.str.lower().to_list())}
