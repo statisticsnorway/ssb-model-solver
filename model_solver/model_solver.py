@@ -446,38 +446,6 @@ class ModelSolver:
 
 
     def switch_endo_var(self, old_endo_vars: list[str], new_endo_vars: list[str]):
-
-
-        if all([x in self.endo_vars for x in old_endo_vars]) is False:
-            print('All variables in old_endo_vars are not endogenous')
-            return
-        if any([x in self.endo_vars for x in new_endo_vars]):
-            print('Some variables in new_endo_vars are endogenous')
-            return
-
-        print('Analyzing model...')
-        self.endo_vars = (*[x for x in self._endo_vars if x not in old_endo_vars], *new_endo_vars)
-
-        self._eqns_endo_vars_match, self._condenced_model_digraph, self._augmented_condenced_model_digraph, self._node_varlist_mapping = self._block_analyze_model()
-
-        self._sim_code, self._blocks = self._gen_sim_code_and_blocks()
-
-        print('Finished')
-
-
-    def find_endo_var(self, endo_var: str):
-        """
-        Finds what block solves the given engoenous variable
-        """
-
-        block = [key for key, val in self._blocks.items() if endo_var.lower() in val[0]]
-        if block:
-            return block[0]
-        else:
-            print('{} is not endogenous in model'.format(endo_var))
-
-
-    def describe(self):
         """
         Sets old_endo_vars as exogenous and new_endo_vars as endogenous and performs block analysis.
 
@@ -507,6 +475,64 @@ class ModelSolver:
         --------
         >>> model = YourModelClass()
         >>> model.switch_endo_var(['var1', 'var2'], ['var3', 'var4'])
+        """
+
+        if all([x in self.endo_vars for x in old_endo_vars]) is False:
+            print('All variables in old_endo_vars are not endogenous')
+            return
+        if any([x in self.endo_vars for x in new_endo_vars]):
+            print('Some variables in new_endo_vars are endogenous')
+            return
+
+        print('Analyzing model...')
+        self.endo_vars = (*[x for x in self._endo_vars if x not in old_endo_vars], *new_endo_vars)
+
+        self._eqns_endo_vars_match, self._condenced_model_digraph, self._augmented_condenced_model_digraph, self._node_varlist_mapping = self._block_analyze_model()
+
+        self._sim_code, self._blocks = self._gen_sim_code_and_blocks()
+
+        print('Finished')
+
+
+    def find_endo_var(self, endo_var: str):
+        """
+        Find the block that solves the specified endogenous variable.
+
+        Parameters
+        ----------
+        endo_var : str
+            The endogenous variable to be found.
+
+        Returns
+        -------
+        str or None
+            The name of the block that solves the specified endogenous variable.
+            Returns None if the endogenous variable is not found in any block.
+
+        Notes
+        -----
+        This function searches for the specified endogenous variable in the model's
+        blocks and returns the name of the block that solves it. If the endogenous
+        variable is not found in any block, it returns None.
+        """
+
+        block = [key for key, val in self._blocks.items() if endo_var.lower() in val[0]]
+        if block:
+            return block[0]
+        else:
+            print('{} is not endogenous in model'.format(endo_var))
+
+
+    def describe(self):
+        """
+        Display a summary of the model's characteristics.
+
+        Prints information about the model, including the number of equations, blocks,
+        simple definition blocks, and the distribution of equation counts in the blocks.
+
+        Returns
+        -------
+        None
         """
 
         print('-'*100)
