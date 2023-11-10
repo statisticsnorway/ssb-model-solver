@@ -704,7 +704,14 @@ class ModelSolver:
         print('-'*100)
         print('Solving model...')
 
-        output_df = input_df.copy(deep=True).astype(float)
+        # This is not ideal, but it does the trick
+        output_df = (
+            input_df
+            .copy(deep=True)
+            .assign(**{x: 1 for x in self.endo_vars if x not in input_df.columns})
+            .copy(deep=True)
+            .astype(float)
+        )
 
         for var in [x for x in self.endo_vars if x not in output_df.columns]:
             output_df[var] = float(1)
