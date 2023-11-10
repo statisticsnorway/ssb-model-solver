@@ -704,14 +704,7 @@ class ModelSolver:
         print('-'*100)
         print('Solving model...')
 
-        # This is not ideal, but it does the trick
-        output_df = (
-            input_df
-            .assign(**{x: 1 for x in self.endo_vars if x not in input_df.columns})
-            .copy(deep=True)
-            .astype(float)
-        )
-
+        output_df = input_df.copy(deep=True).astype(float)
         output_array = output_df.to_numpy(dtype=np.float64)
         var_col_index = {var: i for i, var in enumerate(output_df.columns.str.lower().to_list())}
 
