@@ -706,7 +706,7 @@ class ModelSolver:
 
         output_df = input_df.astype(float).copy(deep=True)
 
-        for var in [x for x in self.endo_vars if x not in df.columns]:
+        for var in [x for x in self.endo_vars if x not in output_df.columns]:
             output_df[var] = 1.0
 
         output_array = output_df.to_numpy(dtype=np.float64)
