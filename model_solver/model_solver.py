@@ -705,6 +705,10 @@ class ModelSolver:
         print('Solving model...')
 
         output_df = input_df.astype(float).copy(deep=True)
+
+        for var in [x for x in self.endo_vars if x not in df.columns]:
+            output_df[var] = 1.0
+
         output_array = output_df.to_numpy(dtype=np.float64)
         var_col_index = {var: i for i, var in enumerate(output_df.columns.str.lower().to_list())}
 
