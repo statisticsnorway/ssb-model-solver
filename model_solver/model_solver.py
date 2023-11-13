@@ -473,7 +473,7 @@ class ModelSolver:
 
         Example:
         --------
-        >>> model = YourModelClass()
+        >>> model = ModelSolver(equations, endogenous)
         >>> model.switch_endo_var(['var1', 'var2'], ['var3', 'var4'])
         """
 
@@ -557,7 +557,7 @@ class ModelSolver:
 
         Example:
         --------
-        >>> model = YourModelClass()
+        >>> model = ModelSolver(equations, endogenous)
         >>> model.show_blocks()
 
         --------------------------------------------------
@@ -628,7 +628,7 @@ class ModelSolver:
 
         Example:
         --------
-        >>> model = YourModelClass()
+        >>> model = ModelSolver(equations, endogenous)
         >>> model.show_block(1)
 
         Block consists of an equation or a system of equations
@@ -690,7 +690,7 @@ class ModelSolver:
 
         Example:
         --------
-        >>> model = YourModelClass()
+        >>> model = ModelSolver(equations, endogenous)
         >>> input_data = pd.DataFrame({'var1': [1.0, 2.0, 3.0], 'var2': [0.5, 1.0, 1.5]})
         >>> output_data = model.solve_model(input_data)
         """
@@ -704,7 +704,7 @@ class ModelSolver:
         print('-'*100)
         print('Solving model...')
 
-        output_df = input_df.astype(float).copy(deep=True)
+        output_df = input_df.copy(deep=True).astype(float)
         output_array = output_df.to_numpy(dtype=np.float64)
         var_col_index = {var: i for i, var in enumerate(output_df.columns.str.lower().to_list())}
 
@@ -888,7 +888,7 @@ class ModelSolver:
 
         Example:
         --------
-        >>> model = YourModelClass()
+        >>> model = ModelSolver(equations, endogenous)
         >>> model.draw_blockwise_graph('var1', max_ancs_gens=3, max_desc_gens=2, max_nodes=30, figsize=(10, 10))
 
         Draws a directed graph of the block containing 'var1' with up to 3 generations of ancestors and 2 generations of descendants.
@@ -991,7 +991,7 @@ class ModelSolver:
 
         Example:
         --------
-        >>> model = YourModelClass()
+        >>> model = ModelSolver(equations, endogenous)
         >>> model.trace_to_exog_vars('Block1')
 
         exog_var1
@@ -1037,7 +1037,7 @@ class ModelSolver:
 
         Example:
         --------
-        >>> model = YourModelClass()
+        >>> model = ModelSolver(equations, endogenous)
         >>> model.trace_to_exog_vals(1, 3)
 
         Block 1 traces back to the following exogenous variable values in 2023-01-04:
@@ -1082,7 +1082,7 @@ class ModelSolver:
 
         Example:
         --------
-        >>> model = YourModelClass()
+        >>> model = ModelSolver(equations, endogenous)
         >>> model.show_block_vals(1, 3)
 
         Block 1 has endogenous variables in 2023-01-04 that evaluate to:
