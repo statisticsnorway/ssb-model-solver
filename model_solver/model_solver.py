@@ -253,7 +253,9 @@ class ModelSolver:
         eqns_endo_vars_match = self._find_max_bipartite_match(eqns_endo_vars_bigraph)
         model_digraph = self._gen_model_digraph(eqns_endo_vars_bigraph, eqns_endo_vars_match)
         condenced_model_digraph, condenced_model_node_varlist_mapping = self._gen_condenced_model_digraph(model_digraph)
-        augmented_condenced_model_digraph, augmented_condenced_model_node_varlist_mapping = self._gen_augmented_condenced_model_digraph(condenced_model_digraph, eqns_endo_vars_match)
+        augmented_condenced_model_digraph, augmented_condenced_model_node_varlist_mapping = (
+            self._gen_augmented_condenced_model_digraph(condenced_model_digraph, eqns_endo_vars_match)
+        )
 
         node_varlist_mapping = {**condenced_model_node_varlist_mapping, **augmented_condenced_model_node_varlist_mapping}
 
@@ -431,7 +433,11 @@ class ModelSolver:
                 def_fun_out = lambda args: np.array([def_fun_lam(args)], dtype=np.float64)
                 return def_fun_out, None, None
 
-            obj_fun_row = eval('-'.join([''.join(['(', ''.join(lhs).strip().strip('+'), ')']), ''.join(['(', ''.join(rhs).strip().strip('+'), ')'])]))
+            obj_fun_row = eval(
+                '-'.join([''.join(['(', ''.join(lhs).strip().strip('+'), ')']),
+                          ''.join(['(', ''.join(rhs).strip().strip('+'), ')'])]
+                        )
+            )
             obj_fun += obj_fun_row,
 
         jac = Matrix(obj_fun).jacobian(Matrix(endo_sym)).tolist()
@@ -757,7 +763,16 @@ class ModelSolver:
 
 
     # Solves one block of the model for a given time period
-    def _solve_block(self, def_fun, obj_fun, jac, endo_vars_info: tuple, pred_vars_info: tuple, output_array: np.array, period: int, jit: bool):
+    def _solve_block(self,
+                     def_fun,
+                     obj_fun,
+                     jac,
+                     endo_vars_info,
+                     pred_vars_info,
+                     output_array,
+                     period,
+                     jit
+                    ):
         _, endo_vars_lags, endo_vars_cols, = endo_vars_info
         _, pred_vars_lags, pred_vars_cols, = pred_vars_info
 
@@ -766,7 +781,17 @@ class ModelSolver:
         if def_fun:
             solution = {}
             try:
-                solution['x'] = def_fun(tuple(self._get_vals(output_array, pred_vars_cols, pred_vars_lags, period, jit)))
+                solution['x'] = def_fun(
+                    tuple(
+                        self._get_vals(
+                        output_array,
+                        pred_vars_cols,
+                        pred_vars_lags,
+                        period,
+                        jit
+                        )
+                    )
+                )
                 solution['status'] = 0
             except ZeroDivisionError:
                 solution['x'] = np.nan
@@ -774,12 +799,26 @@ class ModelSolver:
         else:
             solution = self._newton_raphson(
                 obj_fun,
-                self._get_vals(output_array, endo_vars_cols, endo_vars_lags, period, jit),
-                args = tuple(self._get_vals(output_array, pred_vars_cols, pred_vars_lags, period, jit)),
+                self._get_vals(
+                    output_array,
+                    endo_vars_cols,
+                    endo_vars_lags,
+                    period,
+                    jit
+                ),
+                args = tuple(
+                    self._get_vals(
+                        output_array,
+                        pred_vars_cols,
+                        pred_vars_lags,
+                        period,
+                        jit
+                    )
+                ),
                 jac = jac,
                 tol = self._root_tolerance,
                 maxiter=self.max_iter
-                )
+            )
             if all(np.isfinite(solution.get('x'))) is False:
                 solution['status'] = 2
 
@@ -788,7 +827,13 @@ class ModelSolver:
 
     # Gets values from DataFrame via array view for speed
     # If shape of request > 0 then the request is sent to njit'ed method for speed
-    def _get_vals(self, array: np.array, cols: np.array, lags: np.array, period: int, jit: bool):
+    def _get_vals(self,
+                  array,
+                  cols,
+                  lags,
+                  period,
+                  jit
+                 ):
         if cols.shape[0] == 0:
             return np.array([], np.float64)
 
