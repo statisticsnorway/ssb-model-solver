@@ -375,30 +375,30 @@ class ModelSolver:
 
         sim_code, blocks = {}, {}
         for i, node in enumerate(reversed(tuple(self._condenced_model_digraph.nodes()))):
-            block_endo_vars, block_eqns_orig, block_eqns_lags, block_exog_vars = tuple(), tuple(), tuple(), set()
+            block_endo_vars, block_eqns_orig, block_eqns_lags, block_pred_vars = tuple(), tuple(), tuple(), set()
             for member in self._condenced_model_digraph.nodes[node]['members']:
                 j = self._eqns_endo_vars_match[member]
                 eqns_analyzed = self._eqns_analyzed[j]
                 block_endo_vars += member,
                 block_eqns_orig += eqns_analyzed[0],
                 block_eqns_lags += eqns_analyzed[1],
-                block_exog_vars.update([val for key, val in eqns_analyzed[2].items() if self._lag_notation not in key])
+                block_pred_vars.update([val for key, val in eqns_analyzed[2].items() if self._lag_notation not in key])
 
-            block_exog_vars.difference_update(set(block_endo_vars))
-            block_exog_vars = tuple(block_exog_vars)
+            block_pred_vars.difference_update(set(block_endo_vars))
+            block_pred_vars = tuple(block_pred_vars)
 
-            (def_fun, obj_fun, jac) = self._gen_def_or_obj_fun_and_jac(block_eqns_lags, block_endo_vars, block_exog_vars)
+            (def_fun, obj_fun, jac) = self._gen_def_or_obj_fun_and_jac(block_eqns_lags, block_endo_vars, block_pred_vars)
             sim_code[i+1] = (
                 def_fun,
                 obj_fun,
                 jac,
                 block_endo_vars,
-                block_exog_vars,
+                block_pred_vars,
                 block_eqns_lags
                 )
             blocks[i+1] = (
                 block_endo_vars,
-                block_exog_vars,
+                block_pred_vars,
                 block_eqns_orig,
                 True if def_fun else False
                 )
@@ -410,24 +410,24 @@ class ModelSolver:
     @staticmethod
     def _gen_def_or_obj_fun_and_jac(eqns: tuple[str],
                                     endo_vars: tuple[str],
-                                    exog_vars: tuple[str]
+                                    pred_vars: tuple[str]
                                     ):
         max, min = Max, Max
-        endo_sym, exog_sym, obj_fun = [], [], []
+        endo_sym, pred_sym, obj_fun = [], [], []
         for endo_var in endo_vars:
             var(endo_var)
             endo_sym += eval(endo_var),
-        for exog_var in exog_vars:
+        for exog_var in pred_vars:
             var(exog_var)
-            exog_sym += eval(exog_var),
+            pred_sym += eval(exog_var),
         for eqn in eqns:
             i = eqn.index('=')
             lhs, rhs = eqn[:i], eqn[i+1:]
             if len(eqns) == 1 and endo_var == ''.join(lhs) and endo_var not in rhs:
-                if len(exog_vars) == 0:
+                if len(pred_vars) == 0:
                     return lambda _: np.array([eval(''.join(rhs).strip().strip('+'))]), None, None
                 def_fun = eval(''.join(rhs).strip().strip('+'))
-                def_fun_lam = Lambdify([exog_sym], def_fun)
+                def_fun_lam = Lambdify([pred_sym], def_fun)
                 def_fun_out = lambda args: np.array([def_fun_lam(args)], dtype=np.float64)
                 return def_fun_out, None, None
 
@@ -436,8 +436,8 @@ class ModelSolver:
 
         jac = Matrix(obj_fun).jacobian(Matrix(endo_sym)).tolist()
 
-        obj_fun_lam = Lambdify([*endo_sym, *exog_sym], obj_fun, cse=True)
-        jac_lam = Lambdify([*endo_sym, *exog_sym], jac, cse=True)
+        obj_fun_lam = Lambdify([*endo_sym, *pred_sym], obj_fun, cse=True)
+        jac_lam = Lambdify([*endo_sym, *pred_sym], jac, cse=True)
 
         obj_fun_out = lambda val_list, *args: obj_fun_lam(*val_list, *args)
         jac_out = lambda val_list, *args: jac_lam(*val_list, *args)
@@ -445,7 +445,7 @@ class ModelSolver:
         return None, obj_fun_out, jac_out
 
 
-    def switch_endo_var(self, old_endo_vars: list[str], new_endo_vars: list[str]):
+    def switch_endo_vars(self, old_endo_vars: list[str], new_endo_vars: list[str]):
         """
         Sets old_endo_vars as exogenous and new_endo_vars as endogenous and performs block analysis.
 
@@ -474,7 +474,7 @@ class ModelSolver:
         Example:
         --------
         >>> model = ModelSolver(equations, endogenous)
-        >>> model.switch_endo_var(['var1', 'var2'], ['var3', 'var4'])
+        >>> model.switch_endo_vars(['var1', 'var2'], ['var3', 'var4'])
         """
 
         if all([x in self.endo_vars for x in old_endo_vars]) is False:
