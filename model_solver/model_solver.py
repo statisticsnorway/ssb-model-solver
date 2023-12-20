@@ -753,7 +753,7 @@ class ModelSolver:
         if len(warnings) > 0:
             print('\n')
             print('\n'.join(warnings))
-            print('Consider increasing max_iter')
+            print(f'Consider increasing max_iter from {self._max_iter}')
 
         self._last_solution = output_df
 
