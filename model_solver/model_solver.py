@@ -723,6 +723,8 @@ class ModelSolver:
         print(''.join(['\t|', ' '*(last_period-first_period+1), '|']))
         print('\t ', end='')
 
+        warnings = []
+
         for period in periods:
             print('.', end='')
             for key, val in self._sim_code.items():
@@ -741,12 +743,17 @@ class ModelSolver:
                 output_array[period, [var_col_index.get(x) for x in endo_vars]] = solution.get('x')
 
                 if solution.get('status') == 1:
-                    print('Maximum number of iterations reached for block {} in {}'.format(key, input_df.index[period]))
+                    warnings += 'Maximum number of iterations reached for block {} in {}'.format(key, input_df.index[period]),
                 if solution.get('status') == 2:
                     break
             else:
                 continue
             break
+
+        if len(warnings) > 0:
+            print('\n')
+            print('\n'.join(warnings))
+            print(f'Consider increasing max_iter from {self._max_iter}')
 
         self._last_solution = output_df
 
