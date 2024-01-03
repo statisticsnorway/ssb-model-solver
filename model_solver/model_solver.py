@@ -1211,7 +1211,7 @@ class ModelSolver:
             if method == 'std':
                 solution_diff[var].iloc[period_index-lag] += solution_diff[var].std()
             elif method == 'pct':
-                solution_diff[var].iloc[period_index-lag] += solution_diff[var]*0.01
+                solution_diff[var].iloc[period_index-lag] += solution_diff[var].iloc[period_index-lag]*0.01
             else:
                 raise ValueError('method must be std or pct')
 
@@ -1229,7 +1229,7 @@ class ModelSolver:
             )
 
             result[var] = pd.Series(solution.get('x'), index=endo_vars)
-            
+
         return result.T-self._last_solution[list(endo_vars)].iloc[period_index]
 
 
