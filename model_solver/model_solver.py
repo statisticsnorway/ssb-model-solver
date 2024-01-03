@@ -126,7 +126,7 @@ class ModelSolver:
         try:
             return self._last_solution.iloc[self.max_lag:, :]
         except AttributeError:
-            print('No solution exists')
+            raise AttributeError('No solution exists')
 
 
     @root_tolerance.setter
@@ -738,7 +738,7 @@ class ModelSolver:
                     output_array,
                     period,
                     jit=jit
-                    )
+                )
 
                 output_array[period, [var_col_index.get(x) for x in endo_vars]] = solution.get('x')
 
@@ -1183,6 +1183,56 @@ class ModelSolver:
                 raise KeyError(f'{",".join(missing)} is not in DataFrame')
             return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
         return get_var_info
+
+
+    def sensitivity(self, i: int, period_index: int, method='std'):
+        """
+        TBA
+        """
+
+        if self._some_error:
+            return
+
+        try:
+            var_col_index = {var: i for i, var in enumerate(self._last_solution.columns.str.lower().to_list())}
+        except AttributeError:
+            raise AttributeError('No solution exists')
+
+        get_var_info = cache(self.gen_get_var_info(var_col_index))
+
+        result = pd.DataFrame()
+
+        for exog_var in self._trace_to_exog_vars(i):
+            var, lag = self._lag_mapping.get(self._var_mapping.get(exog_var))
+            solution_diff = self._last_solution.copy()
+
+            if method == 'std':
+                try:
+                    solution_diff[var].iloc[period_index-lag] += solution_diff[var].std()
+                except:
+                    print(solution_diff)
+            elif method == 'pct':
+                solution_diff[var].iloc[period_index-lag] += solution_diff[var]*0.01
+            else:
+                raise ValueError('method must be std or pct')
+
+            output_array = solution_diff.to_numpy(dtype=np.float64)
+
+            (def_fun, obj_fun, jac, endo_vars, pred_vars, _) = self._sim_code.get(i)
+            solution = self._solve_block(
+                def_fun,
+                obj_fun,
+                jac,
+                get_var_info(endo_vars),
+                get_var_info(pred_vars),
+                output_array,
+                period_index,
+                jit=False
+            )
+
+            result[var] = pd.Series(solution.get('x'), index=endo_vars)
+
+        return result
 
 
     # Stole solution from https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
