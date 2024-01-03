@@ -1209,10 +1209,7 @@ class ModelSolver:
             solution_diff = self._last_solution.copy()
 
             if method == 'std':
-                try:
-                    solution_diff[var].iloc[period_index-lag] += solution_diff[var].std()
-                except:
-                    print(solution_diff)
+                solution_diff[var].iloc[period_index-lag] += solution_diff[var].std()
             elif method == 'pct':
                 solution_diff[var].iloc[period_index-lag] += solution_diff[var]*0.01
             else:
