@@ -728,7 +728,7 @@ class ModelSolver:
         for period in periods:
             print('.', end='')
             for key, val in self._sim_code.items():
-                (def_fun, obj_fun, jac, endo_vars, pred_vars, _) = val
+                def_fun, obj_fun, jac, endo_vars, pred_vars, _ = val
                 solution = self._solve_block(
                     def_fun,
                     obj_fun,
