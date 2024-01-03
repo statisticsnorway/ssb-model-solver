@@ -1218,7 +1218,7 @@ class ModelSolver:
 
             output_array = solution_diff.to_numpy(dtype=np.float64)
 
-            (def_fun, obj_fun, jac, endo_vars, pred_vars, _) = self._sim_code.get(i)
+            def_fun, obj_fun, jac, endo_vars, pred_vars, _ = self._sim_code.get(i)
             solution = self._solve_block(
                 def_fun,
                 obj_fun,
