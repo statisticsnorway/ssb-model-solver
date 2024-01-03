@@ -1202,6 +1202,8 @@ class ModelSolver:
 
         result = pd.DataFrame()
 
+        def_fun, obj_fun, jac, endo_vars, pred_vars, _ = self._sim_code.get(i)
+
         for exog_var in self._trace_to_exog_vars(i):
             var, lag = self._lag_mapping.get(self._var_mapping.get(exog_var))
             solution_diff = self._last_solution.copy()
@@ -1218,7 +1220,6 @@ class ModelSolver:
 
             output_array = solution_diff.to_numpy(dtype=np.float64)
 
-            def_fun, obj_fun, jac, endo_vars, pred_vars, _ = self._sim_code.get(i)
             solution = self._solve_block(
                 def_fun,
                 obj_fun,
@@ -1231,8 +1232,8 @@ class ModelSolver:
             )
 
             result[var] = pd.Series(solution.get('x'), index=endo_vars)
-
-        return result
+            
+        return result.T-self._last_solution[list(endo_vars)].iloc[period_index]
 
 
     # Stole solution from https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
