@@ -1185,7 +1185,7 @@ class ModelSolver:
         return get_var_info
 
 
-    def sensitivity(self, i: int, period_index: int, method='std'):
+    def sensitivity(self, i: int, period_index: int, method='std', exog_subset=None):
         """
         Analyzes sensitivity of endogenous variables to exogenous variables for a specific period.
 
@@ -1236,6 +1236,10 @@ class ModelSolver:
         get_var_info = cache(self.gen_get_var_info(var_col_index))
 
         exog_vars = self._trace_to_exog_vars(i)
+
+        if exog_subset:
+            exog_vars = [x for x in exog_vars if x in exog_subset]
+
         n_exog_vars = len(exog_vars)
         div = min(10, n_exog_vars)
 
@@ -1254,9 +1258,9 @@ class ModelSolver:
             solution_diff = self._last_solution.copy()
 
             if method == 'std':
-                solution_diff[var].iloc[period_index-lag] += solution_diff[var].std()+1
+                solution_diff[var].iloc[period_index-lag] += solution_diff[var].std()
             elif method == 'pct':
-                solution_diff[var].iloc[period_index-lag] += solution_diff[var].iloc[period_index-lag]*0.01+1
+                solution_diff[var].iloc[period_index-lag] += solution_diff[var].iloc[period_index-lag]*0.01
             else:
                 raise ValueError('method must be std or pct')
 
