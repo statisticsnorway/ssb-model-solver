@@ -1200,7 +1200,7 @@ class ModelSolver:
 
         get_var_info = cache(self.gen_get_var_info(var_col_index))
 
-        result = pd.DataFrame()
+        result = {}
 
         def_fun, obj_fun, jac, endo_vars, pred_vars, _ = self._sim_code.get(i)
 
@@ -1228,9 +1228,12 @@ class ModelSolver:
                 jit=False
             )
 
-            result[var] = pd.Series(solution.get('x'), index=endo_vars)
+            result[var] = solution.get('x')
 
-        return result.T-self._last_solution[list(endo_vars)].iloc[period_index]
+        return (
+            pd.DataFrame(result, index=endo_vars).T-
+            self._last_solution[list(endo_vars)].iloc[period_index]
+        )
 
 
     # Stole solution from https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
