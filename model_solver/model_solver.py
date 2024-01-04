@@ -1205,6 +1205,7 @@ class ModelSolver:
         def_fun, obj_fun, jac, endo_vars, pred_vars, _ = self._sim_code.get(i)
 
         for exog_var in self._trace_to_exog_vars(i):
+
             var, lag = self._lag_mapping.get(self._var_mapping.get(exog_var))
             solution_diff = self._last_solution.copy()
 
@@ -1217,22 +1218,29 @@ class ModelSolver:
 
             output_array = solution_diff.to_numpy(dtype=np.float64)
 
-            solution = self._solve_block(
-                def_fun,
-                obj_fun,
-                jac,
-                get_var_info(endo_vars),
-                get_var_info(pred_vars),
-                output_array,
-                period_index,
-                jit=False
-            )
+            for key, val in self._sim_code.items():
+                def_fun, obj_fun, jac, endo_vars, pred_vars, _ = val
 
-            result[var] = solution.get('x')
+                solution = self._solve_block(
+                    def_fun,
+                    obj_fun,
+                    jac,
+                    get_var_info(endo_vars),
+                    get_var_info(pred_vars),
+                    output_array,
+                    period_index,
+                    jit=False
+                )
+
+                output_array[period_index, [var_col_index.get(x) for x in endo_vars]] = solution.get('x')
+
+                if key == period_index:
+                    result[exog_var] = solution.get('x')
+                    break
 
         return (
-            pd.DataFrame(result, index=endo_vars).T-
-            self._last_solution[list(endo_vars)].iloc[period_index]
+            pd.DataFrame(result, index=endo_vars).T
+            -self._last_solution[list(endo_vars)].iloc[period_index]
         )
 
 
