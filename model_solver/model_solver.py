@@ -1055,7 +1055,7 @@ class ModelSolver:
         if self._some_error:
             return
 
-        print('\n'.join([' '.join(x) for x in list(self._chunks(self._trace_to_exog_vars(block), 25))]))
+        print('\n'.join([' '.join(x) for x in list(self._chunks(self._trace_to_exog_vars(block), 10))]))
 
 
     ## Finds all exogenous variables that are ancestors to block
