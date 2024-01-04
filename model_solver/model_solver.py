@@ -1185,9 +1185,44 @@ class ModelSolver:
         return get_var_info
 
 
-    def sensitivity(self, i: int, period_index: int, method='std'):
+    def sensitivity(self, i: int, period_index: int, method='std', exog_vars=None):
         """
-        TBA
+        Analyzes sensitivity of endogenous variables to exogenous variables for a specific period.
+
+        Parameters:
+        -----------
+        i : int
+            The index of the block for which variable values will be displayed.
+
+        period_index : int
+            The index of the period for which variable values will be shown.
+
+        method : str, optional
+            Method for sensitivity analysis. Default is 'std'.
+            - 'std': Adjusts variables by adding their standard deviation + 1.
+            - 'pct': Adjusts variables by adding 1% of their value + 1.
+
+        exog_vars : list or None, optional
+            List of exogenous variables. If None, it will be traced from internal data.
+
+        Returns:
+        --------
+        pandas.DataFrame:
+            DataFrame showing the sensitivity of endogenous variables to exogenous variables.
+
+        Example:
+        --------
+        >>> model = ModelSolver(equations, endogenous)
+        >>> sensitivity_df = model.sensitivity(1, 3, method='pct', exog_vars=['exog_var1', 'exog_var2'])
+        >>> print(sensitivity_df)
+
+        Output:
+        -------
+                   | endog_var1 | endog_var2 |
+        -------------------------------------
+        exog_var1  |    0.23     |    0.12    |
+        exog_var2  |    0.45     |    0.56    |
+        ...
         """
 
         if self._some_error:
@@ -1200,16 +1235,23 @@ class ModelSolver:
 
         get_var_info = cache(self.gen_get_var_info(var_col_index))
 
+        if exog_vars:
+            exog_vars = 
+        else:
+            exog_vars = self._trace_to_exog_vars(i)
+
+        n_exog_vars = len(exog_vars)
+        div = min(10, n_exog_vars)
+
         result = {}
 
-        def_fun, obj_fun, jac, endo_vars, pred_vars, _ = self._sim_code.get(i)
-
-        exog_vars = self._trace_to_exog_vars(i)
-        
-        print(''.join(['\t|', ' '*10, '|']))
+        div = min(10, n_exog_vars)
+        print(f'Analysing sensitivity for block {i} in period {self._last_solution.index[period_index]}')
+        print(f'Number exogeneous variables to analyse: {len(exog_vars)}')
+        print(''.join(['\t|', ' '*sum([j % int(n_exog_vars/div) == 0 for j in range(len(exog_vars))]), '|']))
         print('\t ', end='')
         for j, exog_var in enumerate(exog_vars):
-            if j % int(len(exog_vars)/min(10, len(exog_vars))) == 0:
+            if j % int(n_exog_vars/div) == 0:
                 print('.', end='')
 
             var, lag = self._lag_mapping.get(self._var_mapping.get(exog_var))
