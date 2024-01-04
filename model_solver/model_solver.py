@@ -500,7 +500,7 @@ class ModelSolver:
         print('Finished')
 
 
-    def find_endo_var(self, endo_var: str):
+    def find_endo_var(self, endo_var: str, noisy=False):
         """
         Find the block that solves the specified endogenous variable.
 
@@ -524,9 +524,12 @@ class ModelSolver:
 
         block = [key for key, val in self._blocks.items() if endo_var.lower() in val[0]]
         if block:
-            return block[0]
+            if noisy:
+                print(block[0])
+            else:
+                return block[0]
         else:
-            print('{} is not endogenous in model'.format(endo_var))
+            print(f'{endo_var} is not endogenous in model')
 
 
     def describe(self):
@@ -1028,7 +1031,7 @@ class ModelSolver:
         return var_node
 
 
-    def trace_to_exog_vars(self, block: str):
+    def trace_to_exog_vars(self, block: str, noisy=True):
         """
         Prints all exogenous variables that are ancestors to the given block.
 
@@ -1055,7 +1058,10 @@ class ModelSolver:
         if self._some_error:
             return
 
-        print('\n'.join([' '.join(x) for x in list(self._chunks(self._trace_to_exog_vars(block), 10))]))
+        if noisy:
+            print('\n'.join([' '.join(x) for x in list(self._chunks(self._trace_to_exog_vars(block), 10))]))
+        else:
+            return self._trace_to_exog_vars(block)
 
 
     ## Finds all exogenous variables that are ancestors to block
@@ -1071,7 +1077,7 @@ class ModelSolver:
         return ancs_exog_vars
 
 
-    def trace_to_exog_vals(self, block: int, period_index: int):
+    def trace_to_exog_vals(self, block: int, period_index: int, noisy=True):
         """
         Traces the given block back to exogenous values and prints those values.
 
@@ -1109,8 +1115,11 @@ class ModelSolver:
             if ancs_exog_vars:
                 _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self._var_mapping.get(x) for x in ancs_exog_vars))
                 ancs_exog_vals = self._get_vals(output_array, ancs_exog_cols, ancs_exog_lags, period_index, False)
-                print('\nBlock {} traces back to the following exogenous variable values in {}:'.format(block, self._last_solution.index[period_index]))
-                print(*['='.join([x, str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
+                if noisy:
+                    print('\nBlock {} traces back to the following exogenous variable values in {}:'.format(block, self._last_solution.index[period_index]))
+                    print(*['='.join([x, str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
+                else:
+                    return pd.Series(ancs_exog_vals, index=ancs_exog_vars)
 
         except AttributeError:
             print('No solution exists')
