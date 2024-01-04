@@ -413,7 +413,7 @@ class ModelSolver:
     def _gen_def_or_obj_fun_and_jac(eqns: tuple[str],
                                     endo_vars: tuple[str],
                                     pred_vars: tuple[str]
-                                    ):
+                                   ):
         max, min = Max, Max
         endo_sym, pred_sym, obj_fun = [], [], []
         for endo_var in endo_vars:
@@ -508,6 +508,9 @@ class ModelSolver:
         ----------
         endo_var : str
             The endogenous variable to be found.
+
+        noisy : bool, optional
+            Whether output should be printed or returned.
 
         Returns
         -------
@@ -1040,6 +1043,9 @@ class ModelSolver:
         block : str
             The block for which exogenous variables will be traced.
 
+        noisy : bool, optional
+            Whether output should be printed or returned.
+
         Returns:
         --------
         None
@@ -1088,6 +1094,9 @@ class ModelSolver:
 
         period_index : int
             The index of the period for which exogenous values will be traced.
+
+        noisy : bool, optional
+            Whether output should be printed or returned.
 
         Returns:
         --------
