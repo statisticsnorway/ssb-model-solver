@@ -1202,8 +1202,8 @@ class ModelSolver:
             - 'std': Adjusts variables by adding their standard deviation + 1.
             - 'pct': Adjusts variables by adding 1% of their value + 1.
 
-        exog_vars : list or None, optional
-            List of exogenous variables. If None, it will be traced from internal data.
+        exog_subset : list or None, optional
+            List of exogenous variables to be analysed. If None, all relevant exogenous vairbales will be analysed.
 
         Returns:
         --------
