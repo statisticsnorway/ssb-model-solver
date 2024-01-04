@@ -1204,7 +1204,13 @@ class ModelSolver:
 
         def_fun, obj_fun, jac, endo_vars, pred_vars, _ = self._sim_code.get(i)
 
-        for exog_var in self._trace_to_exog_vars(i):
+        exog_vars = self._trace_to_exog_vars(i)
+        
+        print(''.join(['\t|', ' '*10, '|']))
+        print('\t ', end='')
+        for j, exog_var in enumerate(exog_vars):
+            if j % int(len(exog_vars)/min(10, len(exog_vars))) == 0:
+                print('.', end='')
 
             var, lag = self._lag_mapping.get(self._var_mapping.get(exog_var))
             solution_diff = self._last_solution.copy()
