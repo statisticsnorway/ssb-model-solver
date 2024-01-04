@@ -60,10 +60,39 @@ class ModelSolver:
         Solves the model based on input data in a Pandas DataFrame.
         Returns a DataFrame with the same dimensions as input_df.
 
-    Analysis Methods
-    ---------------
-    (TBA - To Be Added)
+    describe():
+        Describes the model in terms of the number of equations and blocks,
+        along with information about the blocks.
 
+    find_endo_var(endogenous_variable[, noisy=False]):
+        Returns the block in which the endogenous variable is solved for.
+
+    show_block(block_number):
+        Returns information about a specific block, including its
+        endogenous variables, exogenous and predetermined variables, and equations.
+
+    show_blocks():
+        Returns information about all the blocks in the model.
+
+    trace_to_exog_vars(block_number[, noisy=True]):
+        Traces the model DiGraph from the block back to the nodes of origin
+        and reports which exogenous variables determine those nodes.
+
+    trace_to_exog_vals(block_number, period_index[, noisy=True]):
+        Traces the model DiGraph back from the block to the nodes of origin,
+        determines what exogenous variables influence those nodes, and reports
+        the values of those variables for the chosen period index.
+
+    draw_blockwise_graph():
+        Draws a network graph based on the model. Takes a variable name,
+        the maximum number of ancestor and descendant nodes, and the maximum
+        number of nodes in total as arguments.
+
+    sensitivity(block_number, period_index[, method='std', exog_subset=None]):
+        Analyzes the sensitivity of endogenous variables to exogenous variables
+        for a specific period index. The method varies the exogenous variables
+        and reports the deviations in the block's endogenous variables from
+        the original solution.
     """
 
     # Reads in equations and endogenous variables and does a number of operations, e.g. analyzing block structure using graph theory.
