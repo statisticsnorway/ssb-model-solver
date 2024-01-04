@@ -1210,9 +1210,9 @@ class ModelSolver:
             solution_diff = self._last_solution.copy()
 
             if method == 'std':
-                solution_diff[var].iloc[period_index-lag] += solution_diff[var].std()
+                solution_diff[var].iloc[period_index-lag] += solution_diff[var].std()+1
             elif method == 'pct':
-                solution_diff[var].iloc[period_index-lag] += solution_diff[var].iloc[period_index-lag]*0.01
+                solution_diff[var].iloc[period_index-lag] += solution_diff[var].iloc[period_index-lag]*0.01+1
             else:
                 raise ValueError('method must be std or pct')
 
@@ -1234,7 +1234,7 @@ class ModelSolver:
 
                 output_array[period_index, [var_col_index.get(x) for x in endo_vars]] = solution.get('x')
 
-                if key == period_index:
+                if key == i:
                     result[exog_var] = solution.get('x')
                     break
 
