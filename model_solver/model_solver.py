@@ -41,11 +41,13 @@ class ModelSolver:
 
     This reads in the equations and endogenous variables, performs block analysis and ordering, and generates simulation code.
 
-    To solve the model using input data in a Pandas DataFrame, let's assume you have a DataFrame named "input_df" containing data on 'A' and 'B' as well as initial values for 'x' and 'y'. You can solve the model by invoking:
+    To solve the model using input data in a Pandas DataFrame, let's assume you have a DataFrame named "input_df" containing data on 'A' and 'B' as well as initial values for 'x' and 'y'.
+    You can solve the model by invoking:
 
         solution_df = model.solve_model(input_df)
 
-    Now, "solution_df" is a Pandas DataFrame with the same dimensions as "input_df," but with the endogenous variables replaced by the solutions to the model. The last solution is also stored in "model.last_solution."
+    Now, "solution_df" is a Pandas DataFrame with the same dimensions as "input_df," but with the endogenous variables replaced by the solutions to the model.
+    The last solution is also stored in "model.last_solution."
 
     Attributes
     ----------
@@ -548,12 +550,10 @@ class ModelSolver:
         """
 
         print('-'*100)
-        print('Model consists of {} equations in {} blocks'
-              .format(len(self.eqns), len(self._blocks)))
-        print('{} of the blocks consist of simple definitions\n'
-              .format(len([val[3] for _, val in self._blocks.items() if val[3]])))
+        print(f'Model consists of {len(self.eqns)} equations in {len(self._blocks)} blocks')
+        print(f'{len([val[3] for _, val in self._blocks.items() if val[3]])} of the blocks consist of simple definitions\n')
         for key, val in Counter(sorted([len(val[2]) for _, val in self._blocks.items()])).items():
-            print('{} blocks have {} equations'.format(val, key))
+            print(f'{val} blocks have {key} equations')
         print('-'*100)
 
 
@@ -667,14 +667,14 @@ class ModelSolver:
         block = self._blocks.get(i)
         if block:
             print(' '.join(['Block consists of', 'a definition' if block[3] else 'an equation or a system of equations']))
-            print('\n{} endogenous variables:'.format(len(block[0])))
+            print(f'\n{len(block[0])} endogenous variables:')
             print('\n'.join([' '.join(x) for x in list(self._chunks(block[0], 25))]))
-            print('\n{} predetermined variables:'.format(len(block[1])))
+            print(f'\n{len(block[1])} predetermined variables:')
             print('\n'.join([' '.join(x) for x in list(self._chunks([self._var_mapping.get(x) for x in block[1]], 25))]))
-            print('\n{} equations:'.format(len(block[2])))
+            print(f'\n{len(block[2])} equations:')
             print('\n'.join(block[2]))
         else:
-            print('Block {} is not in model'.format(block))
+            print(f'Block {block} is not in model')
 
 
     def solve_model(self, input_df: pd.DataFrame, jit=True) -> pd.DataFrame:
@@ -724,7 +724,7 @@ class ModelSolver:
 
         first_period, last_period = self._max_lag, output_array.shape[0]-1
         periods = range(first_period, last_period+1)
-        print('\tFirst period: {}, last period: {}'.format(output_df.index[first_period], output_df.index[last_period]))
+        print(f'\tFirst period: {output_df.index[first_period]}, last period: {output_df.index[last_period]}')
         print('\tSolving')
         print(''.join(['\t|', ' '*(last_period-first_period+1), '|']))
         print('\t ', end='')
@@ -749,7 +749,7 @@ class ModelSolver:
                 output_array[period, [var_col_index.get(x) for x in endo_vars]] = solution.get('x')
 
                 if solution.get('status') == 1:
-                    warnings += 'Maximum number of iterations reached for block {} in {}'.format(key, input_df.index[period]),
+                    warnings += f'Maximum number of iterations reached for block {key} in {input_df.index[period]}',
                 if solution.get('status') == 2:
                     break
             else:
@@ -764,7 +764,7 @@ class ModelSolver:
         self._last_solution = output_df
 
         if solution.get('status') == 2:
-            print('\nFailed to solve block {} in {}'.format(key, input_df.index[period]))
+            print(f'\nFailed to solve block {key} in {input_df.index[period]}')
             self.show_block_vals(key, period)
             self.trace_to_exog_vals(key, period)
         else:
@@ -966,8 +966,10 @@ class ModelSolver:
         subgraph = self._augmented_condenced_model_digraph.subgraph({var_node}.union(max_ancr_nodes).union(max_desc_nodes))
         graph_to_plot = nx.DiGraph()
 
-        print(' '.join(['Graph of block containing {} with <={} generations of ancestors and <={} generations of decendants:'
-                       .format(var, max_ancs_gens, max_desc_gens), str(subgraph)]))
+        print(' '.join([
+            f'Graph of block containing {var} with <={max_ancs_gens} generations of ancestors and <={max_desc_gens} generations of decendants:',
+            str(subgraph)
+        ]))
 
         # Loop over all nodes in subgraph (chosen variable, it's ancestors and decendants) and make nodes and edges in pyvis subgraph
         mapping = {}
@@ -1125,7 +1127,7 @@ class ModelSolver:
                 _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self._var_mapping.get(x) for x in ancs_exog_vars))
                 ancs_exog_vals = self._get_vals(output_array, ancs_exog_cols, ancs_exog_lags, period_index, False)
                 if noisy:
-                    print('\nBlock {} traces back to the following exogenous variable values in {}:'.format(block, self._last_solution.index[period_index]))
+                    print(f'\nBlock {block} traces back to the following exogenous variable values in {self._last_solution.index[period_index]}:')
                     print(*['='.join([x, str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
                 else:
                     return pd.Series(ancs_exog_vals, index=ancs_exog_vars)
@@ -1176,12 +1178,12 @@ class ModelSolver:
 
             _, block_endo_lags, block_endo_cols = get_var_info(block[0])
             block_endo_vals = self._get_vals(output_array, block_endo_cols, block_endo_lags, period_index, False)
-            print('\nBlock {} has endogenous variables in {} that evaluate to:'.format(i, self._last_solution.index[period_index]))
+            print(f'\nBlock {i} has endogenous variables in {self._last_solution.index[period_index]} that evaluate to:')
             print(*['='.join([x, str(y)]) for x, y in zip([self._var_mapping.get(x) for x in block[0]], block_endo_vals)], sep='\n')
 
             _, block_pred_lags, block_pred_cols = get_var_info(block[1])
             block_pred_vals = self._get_vals(output_array, block_pred_cols, block_pred_lags, period_index, False)
-            print('\nBlock {} has predetermined variables in {} that evaluate to:'.format(i, self._last_solution.index[period_index]))
+            print(f'\nBlock {i} has predetermined variables in {self._last_solution.index[period_index]} that evaluate to:')
             print(*['='.join([x, str(y)]) for x, y in zip([self._var_mapping.get(x) for x in block[1]], block_pred_vals)], sep='\n')
 
         except AttributeError:
