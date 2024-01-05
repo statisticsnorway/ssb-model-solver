@@ -703,7 +703,7 @@ class ModelSolver:
             print(f'\n{len(block[2])} equations:')
             print('\n'.join(block[2]))
         else:
-            print(f'Block {block} is not in model')
+            raise IndexError(f'Block {block} is not in model')
 
 
     def solve_model(self, input_df: pd.DataFrame, jit=True) -> pd.DataFrame:
@@ -1103,7 +1103,13 @@ class ModelSolver:
 
     ## Finds all exogenous variables that are ancestors to block
     def _trace_to_exog_vars(self, block):
+        if block < 1:
+            raise IndexError('Block must be >=1')
+
         var_node = len(self._blocks)-block
+        if var_node < 0:
+            raise IndexError(f'Block {block} is not in model')
+
         ancs_nodes = nx.ancestors(self._augmented_condenced_model_digraph, var_node)
 
         ancs_exog_vars = tuple()
