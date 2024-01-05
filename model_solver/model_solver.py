@@ -41,11 +41,13 @@ class ModelSolver:
 
     This reads in the equations and endogenous variables, performs block analysis and ordering, and generates simulation code.
 
-    To solve the model using input data in a Pandas DataFrame, let's assume you have a DataFrame named "input_df" containing data on 'A' and 'B' as well as initial values for 'x' and 'y'. You can solve the model by invoking:
+    To solve the model using input data in a Pandas DataFrame, let's assume you have a DataFrame named "input_df" containing data on 'A' and 'B' as well as initial values for 'x' and 'y'.
+    You can solve the model by invoking:
 
         solution_df = model.solve_model(input_df)
 
-    Now, "solution_df" is a Pandas DataFrame with the same dimensions as "input_df," but with the endogenous variables replaced by the solutions to the model. The last solution is also stored in "model.last_solution."
+    Now, "solution_df" is a Pandas DataFrame with the same dimensions as "input_df," but with the endogenous variables replaced by the solutions to the model.
+    The last solution is also stored in "model.last_solution."
 
     Attributes
     ----------
@@ -58,10 +60,39 @@ class ModelSolver:
         Solves the model based on input data in a Pandas DataFrame.
         Returns a DataFrame with the same dimensions as input_df.
 
-    Analysis Methods
-    ---------------
-    (TBA - To Be Added)
+    describe():
+        Describes the model in terms of the number of equations and blocks,
+        along with information about the blocks.
 
+    find_endo_var(endogenous_variable[, noisy=False]):
+        Returns the block in which the endogenous variable is solved for.
+
+    show_block(block_number):
+        Returns information about a specific block, including its
+        endogenous variables, exogenous and predetermined variables, and equations.
+
+    show_blocks():
+        Returns information about all the blocks in the model.
+
+    trace_to_exog_vars(block_number[, noisy=True]):
+        Traces the model DiGraph from the block back to the nodes of origin
+        and reports which exogenous variables determine those nodes.
+
+    trace_to_exog_vals(block_number, period_index[, noisy=True]):
+        Traces the model DiGraph back from the block to the nodes of origin,
+        determines what exogenous variables influence those nodes, and reports
+        the values of those variables for the chosen period index.
+
+    draw_blockwise_graph():
+        Draws a network graph based on the model. Takes a variable name,
+        the maximum number of ancestor and descendant nodes, and the maximum
+        number of nodes in total as arguments.
+
+    sensitivity(block_number, period_index[, method='std', exog_subset=None]):
+        Analyzes the sensitivity of endogenous variables to exogenous variables
+        for a specific period index. The method varies the exogenous variables
+        and reports the deviations in the block's endogenous variables from
+        the original solution.
     """
 
     # Reads in equations and endogenous variables and does a number of operations, e.g. analyzing block structure using graph theory.
@@ -126,7 +157,7 @@ class ModelSolver:
         try:
             return self._last_solution.iloc[self.max_lag:, :]
         except AttributeError:
-            print('No solution exists')
+            raise AttributeError('No solution exists')
 
 
     @root_tolerance.setter
@@ -297,12 +328,10 @@ class ModelSolver:
             maximum_bipartite_match = nx.bipartite.maximum_matching(eqns_endo_vars_bigraph, [i for i, _ in enumerate(self._eqns)])
             if len(maximum_bipartite_match)/2 < len(self.eqns):
                 self._some_error = True
-                print('ERROR: Model is over or under spesified')
-                return
+                raise RuntimeError('ERROR: Model is over or under spesified')
         except nx.AmbiguousSolution:
             self._some_error = True
-            print('ERROR: Unable to analyze model')
-            return
+            raise RuntimeError('ERROR: Unable to analyze model')
 
         return maximum_bipartite_match
 
@@ -413,7 +442,7 @@ class ModelSolver:
     def _gen_def_or_obj_fun_and_jac(eqns: tuple[str],
                                     endo_vars: tuple[str],
                                     pred_vars: tuple[str]
-                                    ):
+                                   ):
         max, min = Max, Max
         endo_sym, pred_sym, obj_fun = [], [], []
         for endo_var in endo_vars:
@@ -484,11 +513,9 @@ class ModelSolver:
         """
 
         if all([x in self.endo_vars for x in old_endo_vars]) is False:
-            print('All variables in old_endo_vars are not endogenous')
-            return
+            raise RuntimeError('All variables in old_endo_vars are not endogenous')
         if any([x in self.endo_vars for x in new_endo_vars]):
-            print('Some variables in new_endo_vars are endogenous')
-            return
+            raise RuntimeError('Some variables in new_endo_vars are endogenous')
 
         print('Analyzing model...')
         self.endo_vars = (*[x for x in self._endo_vars if x not in old_endo_vars], *new_endo_vars)
@@ -500,7 +527,7 @@ class ModelSolver:
         print('Finished')
 
 
-    def find_endo_var(self, endo_var: str):
+    def find_endo_var(self, endo_var: str, noisy=False):
         """
         Find the block that solves the specified endogenous variable.
 
@@ -508,6 +535,9 @@ class ModelSolver:
         ----------
         endo_var : str
             The endogenous variable to be found.
+
+        noisy : bool, optional
+            Whether output should be printed or returned.
 
         Returns
         -------
@@ -524,9 +554,12 @@ class ModelSolver:
 
         block = [key for key, val in self._blocks.items() if endo_var.lower() in val[0]]
         if block:
-            return block[0]
+            if noisy:
+                print(block[0])
+            else:
+                return block[0]
         else:
-            print('{} is not endogenous in model'.format(endo_var))
+            raise IndexError(f'{endo_var} is not endogenous in model')
 
 
     def describe(self):
@@ -542,12 +575,10 @@ class ModelSolver:
         """
 
         print('-'*100)
-        print('Model consists of {} equations in {} blocks'
-              .format(len(self.eqns), len(self._blocks)))
-        print('{} of the blocks consist of simple definitions\n'
-              .format(len([val[3] for _, val in self._blocks.items() if val[3]])))
+        print(f'Model consists of {len(self.eqns)} equations in {len(self._blocks)} blocks')
+        print(f'{len([val[3] for _, val in self._blocks.items() if val[3]])} of the blocks consist of simple definitions\n')
         for key, val in Counter(sorted([len(val[2]) for _, val in self._blocks.items()])).items():
-            print('{} blocks have {} equations'.format(val, key))
+            print(f'{val} blocks have {key} equations')
         print('-'*100)
 
 
@@ -659,16 +690,17 @@ class ModelSolver:
         """
 
         block = self._blocks.get(i)
+
         if block:
             print(' '.join(['Block consists of', 'a definition' if block[3] else 'an equation or a system of equations']))
-            print('\n{} endogenous variables:'.format(len(block[0])))
+            print(f'\n{len(block[0])} endogenous variables:')
             print('\n'.join([' '.join(x) for x in list(self._chunks(block[0], 25))]))
-            print('\n{} predetermined variables:'.format(len(block[1])))
+            print(f'\n{len(block[1])} predetermined variables:')
             print('\n'.join([' '.join(x) for x in list(self._chunks([self._var_mapping.get(x) for x in block[1]], 25))]))
-            print('\n{} equations:'.format(len(block[2])))
+            print(f'\n{len(block[2])} equations:')
             print('\n'.join(block[2]))
         else:
-            print('Block {} is not in model'.format(block))
+            raise IndexError(f'Block {i} is not in model')
 
 
     def solve_model(self, input_df: pd.DataFrame, jit=True) -> pd.DataFrame:
@@ -718,7 +750,7 @@ class ModelSolver:
 
         first_period, last_period = self._max_lag, output_array.shape[0]-1
         periods = range(first_period, last_period+1)
-        print('\tFirst period: {}, last period: {}'.format(output_df.index[first_period], output_df.index[last_period]))
+        print(f'\tFirst period: {output_df.index[first_period]}, last period: {output_df.index[last_period]}')
         print('\tSolving')
         print(''.join(['\t|', ' '*(last_period-first_period+1), '|']))
         print('\t ', end='')
@@ -728,7 +760,7 @@ class ModelSolver:
         for period in periods:
             print('.', end='')
             for key, val in self._sim_code.items():
-                (def_fun, obj_fun, jac, endo_vars, pred_vars, _) = val
+                def_fun, obj_fun, jac, endo_vars, pred_vars, _ = val
                 solution = self._solve_block(
                     def_fun,
                     obj_fun,
@@ -738,12 +770,12 @@ class ModelSolver:
                     output_array,
                     period,
                     jit=jit
-                    )
+                )
 
                 output_array[period, [var_col_index.get(x) for x in endo_vars]] = solution.get('x')
 
                 if solution.get('status') == 1:
-                    warnings += 'Maximum number of iterations reached for block {} in {}'.format(key, input_df.index[period]),
+                    warnings += f'Maximum number of iterations reached for block {key} in {input_df.index[period]}',
                 if solution.get('status') == 2:
                     break
             else:
@@ -758,7 +790,7 @@ class ModelSolver:
         self._last_solution = output_df
 
         if solution.get('status') == 2:
-            print('\nFailed to solve block {} in {}'.format(key, input_df.index[period]))
+            print(f'\nFailed to solve block {key} in {input_df.index[period]}')
             self.show_block_vals(key, period)
             self.trace_to_exog_vals(key, period)
         else:
@@ -960,8 +992,10 @@ class ModelSolver:
         subgraph = self._augmented_condenced_model_digraph.subgraph({var_node}.union(max_ancr_nodes).union(max_desc_nodes))
         graph_to_plot = nx.DiGraph()
 
-        print(' '.join(['Graph of block containing {} with <={} generations of ancestors and <={} generations of decendants:'
-                       .format(var, max_ancs_gens, max_desc_gens), str(subgraph)]))
+        print(' '.join([
+            f'Graph of block containing {var} with <={max_ancs_gens} generations of ancestors and <={max_desc_gens} generations of decendants:',
+            str(subgraph)
+        ]))
 
         # Loop over all nodes in subgraph (chosen variable, it's ancestors and decendants) and make nodes and edges in pyvis subgraph
         mapping = {}
@@ -1028,14 +1062,17 @@ class ModelSolver:
         return var_node
 
 
-    def trace_to_exog_vars(self, block: str):
+    def trace_to_exog_vars(self, i: str, noisy=True):
         """
         Prints all exogenous variables that are ancestors to the given block.
 
         Parameters:
         -----------
-        block : str
-            The block for which exogenous variables will be traced.
+        i : int
+            The index of the block for which variable values will be displayed.
+
+        noisy : bool, optional
+            Whether output should be printed or returned.
 
         Returns:
         --------
@@ -1055,12 +1092,21 @@ class ModelSolver:
         if self._some_error:
             return
 
-        print('\n'.join([' '.join(x) for x in list(self._chunks(self._trace_to_exog_vars(block), 25))]))
+        if noisy:
+            print('\n'.join([' '.join(x) for x in list(self._chunks(self._trace_to_exog_vars(i), 10))]))
+        else:
+            return self._trace_to_exog_vars(i)
 
 
     ## Finds all exogenous variables that are ancestors to block
-    def _trace_to_exog_vars(self, block):
-        var_node = len(self._blocks)-block
+    def _trace_to_exog_vars(self, i):
+        if i < 1:
+            raise IndexError('Block must be >=1')
+
+        var_node = len(self._blocks)-i
+        if var_node < 0:
+            raise IndexError(f'Block {i} is not in model')
+
         ancs_nodes = nx.ancestors(self._augmented_condenced_model_digraph, var_node)
 
         ancs_exog_vars = tuple()
@@ -1071,17 +1117,20 @@ class ModelSolver:
         return ancs_exog_vars
 
 
-    def trace_to_exog_vals(self, block: int, period_index: int):
+    def trace_to_exog_vals(self, i: int, period_index: int, noisy=True):
         """
         Traces the given block back to exogenous values and prints those values.
 
         Parameters:
         -----------
-        block : int
-            The block to be traced back to exogenous values.
+        i : int
+            The index of the block for which variable values will be displayed.
 
         period_index : int
             The index of the period for which exogenous values will be traced.
+
+        noisy : bool, optional
+            Whether output should be printed or returned.
 
         Returns:
         --------
@@ -1105,15 +1154,18 @@ class ModelSolver:
 
             get_var_info = self.gen_get_var_info(var_col_index)
 
-            ancs_exog_vars = self._trace_to_exog_vars(block)
+            ancs_exog_vars = self._trace_to_exog_vars(i)
             if ancs_exog_vars:
                 _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self._var_mapping.get(x) for x in ancs_exog_vars))
                 ancs_exog_vals = self._get_vals(output_array, ancs_exog_cols, ancs_exog_lags, period_index, False)
-                print('\nBlock {} traces back to the following exogenous variable values in {}:'.format(block, self._last_solution.index[period_index]))
-                print(*['='.join([x, str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
+                if noisy:
+                    print(f'\nBlock {i} traces back to the following exogenous variable values in {self._last_solution.index[period_index]}:')
+                    print(*['='.join([x, str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
+                else:
+                    return pd.Series(ancs_exog_vals, index=ancs_exog_vars)
 
         except AttributeError:
-            print('No solution exists')
+            raise RuntimeError('No solution exists')
 
 
     def show_block_vals(self, i: int, period_index: int):
@@ -1158,16 +1210,16 @@ class ModelSolver:
 
             _, block_endo_lags, block_endo_cols = get_var_info(block[0])
             block_endo_vals = self._get_vals(output_array, block_endo_cols, block_endo_lags, period_index, False)
-            print('\nBlock {} has endogenous variables in {} that evaluate to:'.format(i, self._last_solution.index[period_index]))
+            print(f'\nBlock {i} has endogenous variables in {self._last_solution.index[period_index]} that evaluate to:')
             print(*['='.join([x, str(y)]) for x, y in zip([self._var_mapping.get(x) for x in block[0]], block_endo_vals)], sep='\n')
 
             _, block_pred_lags, block_pred_cols = get_var_info(block[1])
             block_pred_vals = self._get_vals(output_array, block_pred_cols, block_pred_lags, period_index, False)
-            print('\nBlock {} has predetermined variables in {} that evaluate to:'.format(i, self._last_solution.index[period_index]))
+            print(f'\nBlock {i} has predetermined variables in {self._last_solution.index[period_index]} that evaluate to:')
             print(*['='.join([x, str(y)]) for x, y in zip([self._var_mapping.get(x) for x in block[1]], block_pred_vals)], sep='\n')
 
         except AttributeError:
-            print('No solution exists')
+            raise RuntimeError('No solution exists')
 
 
     # Function that returns function that returns names, columns and lags for variables
@@ -1183,6 +1235,115 @@ class ModelSolver:
                 raise KeyError(f'{",".join(missing)} is not in DataFrame')
             return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
         return get_var_info
+
+
+    def sensitivity(self, i: int, period_index: int, method='std', exog_subset=None):
+        """
+        Analyzes sensitivity of endogenous variables to exogenous variables for a specific period.
+
+        Parameters:
+        -----------
+        i : int
+            The index of the block for which variable values will be displayed.
+
+        period_index : int
+            The index of the period for which variable values will be shown.
+
+        method : str, optional
+            Method for sensitivity analysis. Default is 'std'.
+            - 'std': Adjusts variables by adding their standard deviation + 1.
+            - 'pct': Adjusts variables by adding 1% of their value + 1.
+
+        exog_subset : list or None, optional
+            List of exogenous variables to be analysed. If None, all relevant exogenous vairbales will be analysed.
+
+        Returns:
+        --------
+        pandas.DataFrame:
+            DataFrame showing the sensitivity of endogenous variables to exogenous variables.
+
+        Example:
+        --------
+        >>> model = ModelSolver(equations, endogenous)
+        >>> sensitivity_df = model.sensitivity(1, 3, method='pct', exog_vars=['exog_var1', 'exog_var2'])
+        >>> print(sensitivity_df)
+
+        Output:
+        -------
+                   | endog_var1 | endog_var2 |
+        -------------------------------------
+        exog_var1  |    0.23     |    0.12    |
+        exog_var2  |    0.45     |    0.56    |
+        ...
+        """
+
+        if self._some_error:
+            return
+
+        try:
+            var_col_index = {var: i for i, var in enumerate(self._last_solution.columns.str.lower().to_list())}
+        except AttributeError:
+            raise AttributeError('No solution exists')
+
+        get_var_info = cache(self.gen_get_var_info(var_col_index))
+
+        exog_vars = self._trace_to_exog_vars(i)
+
+        if exog_subset:
+            exog_vars = [x for x in exog_vars if x in exog_subset]
+
+        n_exog_vars = len(exog_vars)
+        div = min(10, n_exog_vars)
+
+        result = {}
+
+        div = min(10, n_exog_vars)
+        print(f'Analysing sensitivity for block {i} in period {self._last_solution.index[period_index]}')
+        print(f'Number exogeneous variables to analyse: {len(exog_vars)}')
+        print(''.join(['\t|', ' '*sum([j % int(n_exog_vars/div) == 0 for j in range(len(exog_vars))]), '|']))
+        print('\t ', end='')
+        for j, exog_var in enumerate(exog_vars):
+            if j % int(n_exog_vars/div) == 0:
+                print('.', end='')
+
+            var, lag = self._lag_mapping.get(self._var_mapping.get(exog_var))
+            solution_diff = self._last_solution.copy()
+
+            if method == 'std':
+                solution_diff[var].iloc[period_index-lag] += solution_diff[var].std()
+            elif method == 'pct':
+                solution_diff[var].iloc[period_index-lag] += solution_diff[var].iloc[period_index-lag]*0.01
+            elif method == 'one':
+                solution_diff[var].iloc[period_index-lag] += 1
+            else:
+                raise ValueError('method must be std, pct or one')
+
+            output_array = solution_diff.to_numpy(dtype=np.float64)
+
+            for key, val in self._sim_code.items():
+                def_fun, obj_fun, jac, endo_vars, pred_vars, _ = val
+
+                solution = self._solve_block(
+                    def_fun,
+                    obj_fun,
+                    jac,
+                    get_var_info(endo_vars),
+                    get_var_info(pred_vars),
+                    output_array,
+                    period_index,
+                    jit=False
+                )
+
+                output_array[period_index, [var_col_index.get(x) for x in endo_vars]] = solution.get('x')
+
+                if key == i:
+                    result[exog_var] = solution.get('x')
+                    break
+
+        return (
+            pd.DataFrame(result, index=endo_vars).T
+            -self._last_solution[list(endo_vars)].iloc[period_index]
+        )
 
 
     # Stole solution from https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
