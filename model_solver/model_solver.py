@@ -1313,8 +1313,10 @@ class ModelSolver:
                 solution_diff[var].iloc[period_index-lag] += solution_diff[var].std()
             elif method == 'pct':
                 solution_diff[var].iloc[period_index-lag] += solution_diff[var].iloc[period_index-lag]*0.01
+            elif method == 'one':
+                solution_diff[var].iloc[period_index-lag] += 1
             else:
-                raise ValueError('method must be std or pct')
+                raise ValueError('method must be std, pct or one')
 
             output_array = solution_diff.to_numpy(dtype=np.float64)
 
