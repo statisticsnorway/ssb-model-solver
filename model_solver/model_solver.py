@@ -328,12 +328,10 @@ class ModelSolver:
             maximum_bipartite_match = nx.bipartite.maximum_matching(eqns_endo_vars_bigraph, [i for i, _ in enumerate(self._eqns)])
             if len(maximum_bipartite_match)/2 < len(self.eqns):
                 self._some_error = True
-                print('ERROR: Model is over or under spesified')
-                return
+                raise RuntimeError('ERROR: Model is over or under spesified')
         except nx.AmbiguousSolution:
             self._some_error = True
-            print('ERROR: Unable to analyze model')
-            return
+            raise RuntimeError('ERROR: Unable to analyze model')
 
         return maximum_bipartite_match
 
@@ -515,11 +513,9 @@ class ModelSolver:
         """
 
         if all([x in self.endo_vars for x in old_endo_vars]) is False:
-            print('All variables in old_endo_vars are not endogenous')
-            return
+            raise RuntimeError('All variables in old_endo_vars are not endogenous')
         if any([x in self.endo_vars for x in new_endo_vars]):
-            print('Some variables in new_endo_vars are endogenous')
-            return
+            raise RuntimeError('Some variables in new_endo_vars are endogenous')
 
         print('Analyzing model...')
         self.endo_vars = (*[x for x in self._endo_vars if x not in old_endo_vars], *new_endo_vars)
@@ -563,7 +559,7 @@ class ModelSolver:
             else:
                 return block[0]
         else:
-            print(f'{endo_var} is not endogenous in model')
+            raise IndexError(f'{endo_var} is not endogenous in model')
 
 
     def describe(self):
@@ -1168,7 +1164,7 @@ class ModelSolver:
                     return pd.Series(ancs_exog_vals, index=ancs_exog_vars)
 
         except AttributeError:
-            print('No solution exists')
+            raise RuntimeError('No solution exists')
 
 
     def show_block_vals(self, i: int, period_index: int):
@@ -1222,7 +1218,7 @@ class ModelSolver:
             print(*['='.join([x, str(y)]) for x, y in zip([self._var_mapping.get(x) for x in block[1]], block_pred_vals)], sep='\n')
 
         except AttributeError:
-            print('No solution exists')
+            raise RuntimeError('No solution exists')
 
 
     # Function that returns function that returns names, columns and lags for variables
