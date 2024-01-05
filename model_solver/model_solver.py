@@ -690,6 +690,7 @@ class ModelSolver:
         """
 
         block = self._blocks.get(i)
+
         if block:
             print(' '.join(['Block consists of', 'a definition' if block[3] else 'an equation or a system of equations']))
             print(f'\n{len(block[0])} endogenous variables:')
@@ -699,7 +700,7 @@ class ModelSolver:
             print(f'\n{len(block[2])} equations:')
             print('\n'.join(block[2]))
         else:
-            raise IndexError(f'Block {block} is not in model')
+            raise IndexError(f'Block {i} is not in model')
 
 
     def solve_model(self, input_df: pd.DataFrame, jit=True) -> pd.DataFrame:
@@ -1061,14 +1062,14 @@ class ModelSolver:
         return var_node
 
 
-    def trace_to_exog_vars(self, block: str, noisy=True):
+    def trace_to_exog_vars(self, i: str, noisy=True):
         """
         Prints all exogenous variables that are ancestors to the given block.
 
         Parameters:
         -----------
-        block : str
-            The block for which exogenous variables will be traced.
+        i : int
+            The index of the block for which variable values will be displayed.
 
         noisy : bool, optional
             Whether output should be printed or returned.
@@ -1092,19 +1093,19 @@ class ModelSolver:
             return
 
         if noisy:
-            print('\n'.join([' '.join(x) for x in list(self._chunks(self._trace_to_exog_vars(block), 10))]))
+            print('\n'.join([' '.join(x) for x in list(self._chunks(self._trace_to_exog_vars(i), 10))]))
         else:
-            return self._trace_to_exog_vars(block)
+            return self._trace_to_exog_vars(i)
 
 
     ## Finds all exogenous variables that are ancestors to block
-    def _trace_to_exog_vars(self, block):
-        if block < 1:
+    def _trace_to_exog_vars(self, i):
+        if i < 1:
             raise IndexError('Block must be >=1')
 
-        var_node = len(self._blocks)-block
+        var_node = len(self._blocks)-i
         if var_node < 0:
-            raise IndexError(f'Block {block} is not in model')
+            raise IndexError(f'Block {i} is not in model')
 
         ancs_nodes = nx.ancestors(self._augmented_condenced_model_digraph, var_node)
 
@@ -1116,14 +1117,14 @@ class ModelSolver:
         return ancs_exog_vars
 
 
-    def trace_to_exog_vals(self, block: int, period_index: int, noisy=True):
+    def trace_to_exog_vals(self, i: int, period_index: int, noisy=True):
         """
         Traces the given block back to exogenous values and prints those values.
 
         Parameters:
         -----------
-        block : int
-            The block to be traced back to exogenous values.
+        i : int
+            The index of the block for which variable values will be displayed.
 
         period_index : int
             The index of the period for which exogenous values will be traced.
@@ -1153,12 +1154,12 @@ class ModelSolver:
 
             get_var_info = self.gen_get_var_info(var_col_index)
 
-            ancs_exog_vars = self._trace_to_exog_vars(block)
+            ancs_exog_vars = self._trace_to_exog_vars(i)
             if ancs_exog_vars:
                 _, ancs_exog_lags, ancs_exog_cols, = get_var_info((self._var_mapping.get(x) for x in ancs_exog_vars))
                 ancs_exog_vals = self._get_vals(output_array, ancs_exog_cols, ancs_exog_lags, period_index, False)
                 if noisy:
-                    print(f'\nBlock {block} traces back to the following exogenous variable values in {self._last_solution.index[period_index]}:')
+                    print(f'\nBlock {i} traces back to the following exogenous variable values in {self._last_solution.index[period_index]}:')
                     print(*['='.join([x, str(y)]) for x, y in zip(ancs_exog_vars, ancs_exog_vals)], sep='\n')
                 else:
                     return pd.Series(ancs_exog_vals, index=ancs_exog_vars)
