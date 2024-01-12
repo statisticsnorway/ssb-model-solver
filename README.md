@@ -58,3 +58,8 @@ When the class is finished initializing, the user can call the following methods
 * ```model.trace_to_exog_vals(block_nunber, period_index)``` traces back to the exogenous variable values for the period.
 * ```model.draw_blockwise_graph(variable, maximum_ancestor_generations, maximum_decendants_generations)``` where `variable` is a variable of interest, and `maximum_ancestor_generations` and `maximum_decendants_generations`are non-negative integers that governs the number of generations before and after the variable to be graphed. The output is a HTML-file with a relational graph.
 * ```model.sensitivity(block_nunber, period_index[, method='std', exog_subset=None])``` analyses the sensitivity of the endogenous variable in the block with respect to the exogenous variabels that determine the solution for the period.
+
+## Installation
+```
+poetry add git+https://github.com/statisticsnorway/ssb-model-solver.git
+```
