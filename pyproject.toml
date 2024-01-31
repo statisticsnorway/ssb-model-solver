@@ -1,10 +1,10 @@
 [tool.poetry]
 name = "ssb-model-solver"
-version = "1.1.16"
+version = "1.1.17"
 description = "Class to define, block analyse and solve dynamic and algebraic models numerically"
 authors = ["Magnus Helliesen <mkh@ssb.no>"]
 license = "MIT"
-packages = [{include = "model_solver"}]
+packages = [{include = "model_solver", from="src"}]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.11"
