@@ -518,9 +518,14 @@ class ModelSolver:
             raise RuntimeError('Some variables in new_endo_vars are endogenous')
 
         print('Analyzing model...')
-        self.endo_vars = (*[x for x in self._endo_vars if x not in old_endo_vars], *new_endo_vars)
+        self._endo_vars = (*[x for x in self._endo_vars if x not in old_endo_vars], *new_endo_vars)
 
-        self._eqns_endo_vars_match, self._condenced_model_digraph, self._augmented_condenced_model_digraph, self._node_varlist_mapping = self._block_analyze_model()
+        (
+            self._eqns_endo_vars_match,
+            self._condenced_model_digraph,
+            self._augmented_condenced_model_digraph,
+            self._node_varlist_mapping
+        ) = self._block_analyze_model()
 
         self._sim_code, self._blocks = self._gen_sim_code_and_blocks()
 
@@ -1114,7 +1119,7 @@ class ModelSolver:
             if len(nx.ancestors(self._augmented_condenced_model_digraph, node)) == 0:
                 ancs_exog_vars += self._node_varlist_mapping.get(node)
 
-        return ancs_exog_vars
+        return [x for x in ancs_exog_vars if x not in self.endo_vars]
 
 
     def trace_to_exog_vals(self, i: int, period_index: int, noisy=True):
