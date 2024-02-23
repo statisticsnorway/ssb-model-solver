@@ -157,7 +157,7 @@ class ModelSolver:
         try:
             return self._last_solution.iloc[self.max_lag:, :]
         except AttributeError:
-            raise AttributeError('No solution exists')
+            raise AttributeError('no solution exists')
 
 
     @root_tolerance.setter
@@ -233,7 +233,7 @@ class ModelSolver:
             is_sci = (is_num and chr == 'e') or is_sci
 
             if (is_var and chr == '(' and component in ['max', 'min', 'log', 'exp']):
-                parsed_eqn_with_lag_notation += ''.join([component, chr])
+                parsed_eqn_with_lag_notation += ''.join([component, chr]),
                 is_var, is_lag = False, False
                 component, lag = '', ''
                 continue
@@ -328,10 +328,10 @@ class ModelSolver:
             maximum_bipartite_match = nx.bipartite.maximum_matching(eqns_endo_vars_bigraph, [i for i, _ in enumerate(self._eqns)])
             if len(maximum_bipartite_match)/2 < len(self.eqns):
                 self._some_error = True
-                raise RuntimeError('ERROR: Model is over or under spesified')
+                raise RuntimeError('model is over or under spesified')
         except nx.AmbiguousSolution:
             self._some_error = True
-            raise RuntimeError('ERROR: Unable to analyze model')
+            raise RuntimeError('unable to analyze model')
 
         return maximum_bipartite_match
 
@@ -462,6 +462,11 @@ class ModelSolver:
                 def_fun_out = lambda args: np.array([def_fun_lam(args)], dtype=np.float64)
                 return def_fun_out, None, None
 
+            if ('min(' in lhs) or ('min(' in rhs):
+                raise RuntimeError('min-function is in block that is not a simple definition')
+            if ('max(' in lhs) or ('max(' in rhs):
+                raise RuntimeError('max-function is in block that is not a simple definition')
+
             obj_fun_row = eval(
                 '-'.join([''.join(['(', ''.join(lhs).strip().strip('+'), ')']),
                           ''.join(['(', ''.join(rhs).strip().strip('+'), ')'])]
@@ -513,9 +518,9 @@ class ModelSolver:
         """
 
         if all([x in self.endo_vars for x in old_endo_vars]) is False:
-            raise RuntimeError('All variables in old_endo_vars are not endogenous')
+            raise RuntimeError('all variables in old_endo_vars are not endogenous')
         if any([x in self.endo_vars for x in new_endo_vars]):
-            raise RuntimeError('Some variables in new_endo_vars are endogenous')
+            raise RuntimeError('some variables in new_endo_vars are endogenous')
 
         print('Analyzing model...')
         self._endo_vars = (*[x for x in self._endo_vars if x not in old_endo_vars], *new_endo_vars)
@@ -742,7 +747,7 @@ class ModelSolver:
             return
 
         if all(np.issubdtype(input_df[x].dtype, np.number) for x in input_df.columns) is False:
-            raise TypeError(f'All columns in input_df must be numeric')
+            raise TypeError('all columns in input_df must be numeric')
 
         print('-'*100)
         print('Solving model...')
@@ -882,7 +887,7 @@ class ModelSolver:
             return np.array([], np.float64)
 
         if any([period-x < 0 for x in lags]):
-            raise IndexError('Period is out of range')
+            raise IndexError('period is out of range')
         else:
             if jit:
                 return self._get_vals_jit(array, cols, lags, period)
@@ -1063,7 +1068,7 @@ class ModelSolver:
         elif var in self._augmented_condenced_model_digraph.nodes(): 
             var_node = var
         else:
-            raise NameError('Variable is not in model')
+            raise NameError('variable is not in model')
         return var_node
 
 
@@ -1170,7 +1175,7 @@ class ModelSolver:
                     return pd.Series(ancs_exog_vals, index=ancs_exog_vars)
 
         except AttributeError:
-            raise RuntimeError('No solution exists')
+            raise RuntimeError('no solution exists')
 
 
     def show_block_vals(self, i: int, period_index: int):
@@ -1224,7 +1229,7 @@ class ModelSolver:
             print(*['='.join([x, str(y)]) for x, y in zip([self._var_mapping.get(x) for x in block[1]], block_pred_vals)], sep='\n')
 
         except AttributeError:
-            raise RuntimeError('No solution exists')
+            raise RuntimeError('no solution exists')
 
 
     # Function that returns function that returns names, columns and lags for variables
@@ -1288,7 +1293,7 @@ class ModelSolver:
         try:
             var_col_index = {var: i for i, var in enumerate(self._last_solution.columns.str.lower().to_list())}
         except AttributeError:
-            raise AttributeError('No solution exists')
+            raise AttributeError('no solution exists')
 
         get_var_info = cache(self.gen_get_var_info(var_col_index))
 
