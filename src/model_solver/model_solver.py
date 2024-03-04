@@ -181,24 +181,20 @@ class ModelSolver:
     # Checks that there are no blank lines, sets everything to lowercase and returns as tuples
     def _init_model(self, eqns: list, endo_vars: list):
         print('* Importing equations')
-        for i, eqn in enumerate(eqns):
-            if eqn.strip() == '':
-                self._some_error = True
-                raise ValueError('there are empty elements in equation list')
-            eqns[i] = eqns[i].lower()
+        if any(x.strip() == '' for x in eqns):
+            self._some_error = True
+            raise ValueError('there are empty elements in equation list')
 
         print('* Importing endogenous variables')
-        for endo_var in endo_vars:
-            if endo_var.strip() == '':
-                self._some_error = True
-                raise ValueError('there are empty elements in endogenous variable list')
-            endo_vars[i] = endo_vars[i].lower()
+        if any(x.strip() == '' for x in endo_vars):
+            self._some_error = True
+            raise ValueError('there are empty elements in endogenous variable list')
 
         if len(eqns) != len(endo_vars):
             self._some_error = True
             raise ValueError('there is a different number of equations and endogenous variables')
 
-        return tuple(eqns), tuple(endo_vars)
+        return tuple(x.lower() for x in eqns), tuple(x.lower() for x in endo_vars)
 
 
     # Analyzes the equations of the model
