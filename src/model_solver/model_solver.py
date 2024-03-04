@@ -163,17 +163,17 @@ class ModelSolver:
     @root_tolerance.setter
     def root_tolerance(self, val: float):
         if isinstance(val, float) is False:
-            raise ValueError('Tolerance for termination must be of type float')
+            raise ValueError('tolerance for termination must be of type float')
         if val <= 0:
-            raise ValueError('Tolerance for termination must be positive')
+            raise ValueError('tolerance for termination must be positive')
         self._root_tolerance = val
 
     @max_iter.setter
     def max_iter(self, val: int):
         if isinstance(val, int) is False:
-            raise ValueError('Maximum number of iterations must be an integer')
+            raise ValueError('maximum number of iterations must be an integer')
         if val < 0:
-            raise ValueError('Maximum number of iterations cannot be negative')
+            raise ValueError('maximum number of iterations cannot be negative')
         self._max_iter = val
 
 
@@ -184,15 +184,19 @@ class ModelSolver:
         for i, eqn in enumerate(eqns):
             if eqn.strip() == '':
                 self._some_error = True
-                raise ValueError('There are empty elements in equation list')
+                raise ValueError('there are empty elements in equation list')
             eqns[i] = eqns[i].lower()
 
         print('* Importing endogenous variables')
         for endo_var in endo_vars:
             if endo_var.strip() == '':
                 self._some_error = True
-                raise ValueError('There are empty elements in endogenous variable list')
+                raise ValueError('there are empty elements in endogenous variable list')
             endo_vars[i] = endo_vars[i].lower()
+
+        if len(eqns) != len(endo_vars):
+            self._some_error = True
+            raise ValueError('there is a different number of equations and endogenous variables')
 
         return tuple(eqns), tuple(endo_vars)
 
