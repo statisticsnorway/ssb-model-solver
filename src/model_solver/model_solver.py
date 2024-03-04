@@ -719,7 +719,7 @@ class ModelSolver:
 
     def solve_model(self, input_df: pd.DataFrame, jit=True) -> pd.DataFrame:
         """
-        Solves the model for a given DataFrame.
+        Solves the model subject to a given DataFrame.
 
         Parameters:
         -----------
@@ -1253,7 +1253,7 @@ class ModelSolver:
 
     def sensitivity(self, i: int, period_index: int, method='std', exog_subset=None):
         """
-        Analyzes sensitivity of endogenous variables to exogenous variables for a specific period.
+        Analyses sensitivity of endogenous variables to exogenous variables for a specific period.
 
         Parameters:
         -----------
@@ -1265,11 +1265,12 @@ class ModelSolver:
 
         method : str, optional
             Method for sensitivity analysis. Default is 'std'.
-            - 'std': Adjusts variables by adding their standard deviation + 1.
-            - 'pct': Adjusts variables by adding 1% of their value + 1.
+            - 'std': Adjusts variables by adding their standard deviation.
+            - 'pct': Adjusts variables by adding 1% of their value.
+            - 'one': Adjusts variables by adding 1 to their value.
 
         exog_subset : list or None, optional
-            List of exogenous variables to be analysed. If None, all relevant exogenous vairbales will be analysed.
+            List of exogenous variables to be analysed. If None, all relevant exogenous variables will be analysed.
 
         Returns:
         --------
