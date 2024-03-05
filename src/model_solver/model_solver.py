@@ -115,7 +115,12 @@ class ModelSolver:
         self._eqns_analyzed, self._var_mapping, self._lag_mapping = self._analyze_eqns()
 
         # Perform block analysis and ordering of equations
-        self._eqns_endo_vars_match, self._condenced_model_digraph, self._augmented_condenced_model_digraph, self._node_varlist_mapping = self._block_analyze_model()
+        (
+            self._eqns_endo_vars_match,
+            self._condenced_model_digraph,
+            self._augmented_condenced_model_digraph,
+            self._node_varlist_mapping
+        ) = self._block_analyze_model()
 
         # Generating everything needed to simulate model
         self._sim_code, self._blocks = self._gen_sim_code_and_blocks()
@@ -163,17 +168,17 @@ class ModelSolver:
     @root_tolerance.setter
     def root_tolerance(self, val: float):
         if isinstance(val, float) is False:
-            raise ValueError('Tolerance for termination must be of type float')
+            raise ValueError('tolerance for termination must be of type float')
         if val <= 0:
-            raise ValueError('Tolerance for termination must be positive')
+            raise ValueError('tolerance for termination must be positive')
         self._root_tolerance = val
 
     @max_iter.setter
     def max_iter(self, val: int):
         if isinstance(val, int) is False:
-            raise ValueError('Maximum number of iterations must be an integer')
+            raise ValueError('maximum number of iterations must be an integer')
         if val < 0:
-            raise ValueError('Maximum number of iterations cannot be negative')
+            raise ValueError('maximum number of iterations cannot be negative')
         self._max_iter = val
 
 
@@ -181,20 +186,20 @@ class ModelSolver:
     # Checks that there are no blank lines, sets everything to lowercase and returns as tuples
     def _init_model(self, eqns: list, endo_vars: list):
         print('* Importing equations')
-        for i, eqn in enumerate(eqns):
-            if eqn.strip() == '':
-                self._some_error = True
-                raise ValueError('There are empty elements in equation list')
-            eqns[i] = eqns[i].lower()
+        if any(x.strip() == '' for x in eqns):
+            self._some_error = True
+            raise ValueError('there are empty elements in equation list')
 
         print('* Importing endogenous variables')
-        for endo_var in endo_vars:
-            if endo_var.strip() == '':
-                self._some_error = True
-                raise ValueError('There are empty elements in endogenous variable list')
-            endo_vars[i] = endo_vars[i].lower()
+        if any(x.strip() == '' for x in endo_vars):
+            self._some_error = True
+            raise ValueError('there are empty elements in endogenous variable list')
 
-        return tuple(eqns), tuple(endo_vars)
+        if len(eqns) != len(endo_vars):
+            self._some_error = True
+            raise ValueError('there is a different number of equations and endogenous variables')
+
+        return tuple(x.lower() for x in eqns), tuple(x.lower() for x in endo_vars)
 
 
     # Analyzes the equations of the model
@@ -402,7 +407,8 @@ class ModelSolver:
         if self._some_error:
             return
 
-        print('\t* Generating simulation code (i.e. block-wise symbolic objective function, symbolic Jacobian matrix and lists of endogenous and exogenous variables)')
+        print('\t* Generating simulation code (i.e. block-wise symbolic objective function,',
+              'symbolic Jacobian matrix and lists of endogenous and exogenous variables)')
 
         sim_code, blocks = {}, {}
         for i, node in enumerate(reversed(tuple(self._condenced_model_digraph.nodes()))):
@@ -517,13 +523,13 @@ class ModelSolver:
         >>> model.switch_endo_vars(['var1', 'var2'], ['var3', 'var4'])
         """
 
-        if all([x in self.endo_vars for x in old_endo_vars]) is False:
+        if all(x in self.endo_vars for x in old_endo_vars) is False:
             raise RuntimeError('all variables in old_endo_vars are not endogenous')
-        if any([x in self.endo_vars for x in new_endo_vars]):
+        if any(x in self.endo_vars for x in new_endo_vars):
             raise RuntimeError('some variables in new_endo_vars are endogenous')
 
         print('Analyzing model...')
-        self._endo_vars = (*[x for x in self._endo_vars if x not in old_endo_vars], *new_endo_vars)
+        self._endo_vars = *[x for x in self._endo_vars if x not in old_endo_vars], *new_endo_vars,
 
         (
             self._eqns_endo_vars_match,
@@ -715,7 +721,7 @@ class ModelSolver:
 
     def solve_model(self, input_df: pd.DataFrame, jit=True) -> pd.DataFrame:
         """
-        Solves the model for a given DataFrame.
+        Solves the model subject to a given DataFrame.
 
         Parameters:
         -----------
@@ -1249,7 +1255,7 @@ class ModelSolver:
 
     def sensitivity(self, i: int, period_index: int, method='std', exog_subset=None):
         """
-        Analyzes sensitivity of endogenous variables to exogenous variables for a specific period.
+        Analyses sensitivity of endogenous variables to exogenous variables for a specific period.
 
         Parameters:
         -----------
@@ -1261,11 +1267,12 @@ class ModelSolver:
 
         method : str, optional
             Method for sensitivity analysis. Default is 'std'.
-            - 'std': Adjusts variables by adding their standard deviation + 1.
-            - 'pct': Adjusts variables by adding 1% of their value + 1.
+            - 'std': Adjusts variables by adding their standard deviation.
+            - 'pct': Adjusts variables by adding 1% of their value.
+            - 'one': Adjusts variables by adding 1 to their value.
 
         exog_subset : list or None, optional
-            List of exogenous variables to be analysed. If None, all relevant exogenous vairbales will be analysed.
+            List of exogenous variables to be analysed. If None, all relevant exogenous variables will be analysed.
 
         Returns:
         --------
