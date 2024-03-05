@@ -115,7 +115,12 @@ class ModelSolver:
         self._eqns_analyzed, self._var_mapping, self._lag_mapping = self._analyze_eqns()
 
         # Perform block analysis and ordering of equations
-        self._eqns_endo_vars_match, self._condenced_model_digraph, self._augmented_condenced_model_digraph, self._node_varlist_mapping = self._block_analyze_model()
+        (
+            self._eqns_endo_vars_match,
+            self._condenced_model_digraph,
+            self._augmented_condenced_model_digraph,
+            self._node_varlist_mapping
+        ) = self._block_analyze_model()
 
         # Generating everything needed to simulate model
         self._sim_code, self._blocks = self._gen_sim_code_and_blocks()
@@ -402,7 +407,8 @@ class ModelSolver:
         if self._some_error:
             return
 
-        print('\t* Generating simulation code (i.e. block-wise symbolic objective function, symbolic Jacobian matrix and lists of endogenous and exogenous variables)')
+        print('\t* Generating simulation code (i.e. block-wise symbolic objective function,',
+              'symbolic Jacobian matrix and lists of endogenous and exogenous variables)')
 
         sim_code, blocks = {}, {}
         for i, node in enumerate(reversed(tuple(self._condenced_model_digraph.nodes()))):
