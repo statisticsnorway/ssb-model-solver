@@ -523,9 +523,9 @@ class ModelSolver:
         >>> model.switch_endo_vars(['var1', 'var2'], ['var3', 'var4'])
         """
 
-        if all([x in self.endo_vars for x in old_endo_vars]) is False:
+        if all(x in self.endo_vars for x in old_endo_vars) is False:
             raise RuntimeError('all variables in old_endo_vars are not endogenous')
-        if any([x in self.endo_vars for x in new_endo_vars]):
+        if any(x in self.endo_vars for x in new_endo_vars):
             raise RuntimeError('some variables in new_endo_vars are endogenous')
 
         print('Analyzing model...')
