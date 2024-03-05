@@ -529,7 +529,7 @@ class ModelSolver:
             raise RuntimeError('some variables in new_endo_vars are endogenous')
 
         print('Analyzing model...')
-        self._endo_vars = (*[x for x in self._endo_vars if x not in old_endo_vars], *new_endo_vars)
+        self._endo_vars = *[x for x in self._endo_vars if x not in old_endo_vars], *new_endo_vars,
 
         (
             self._eqns_endo_vars_match,
