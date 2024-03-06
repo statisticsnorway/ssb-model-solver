@@ -1185,7 +1185,7 @@ class ModelSolver:
             raise RuntimeError('no solution exists')
 
 
-    def show_block_vals(self, i: int, period_index: int):
+    def show_block_vals(self, i: int, period_index: int, noisy=True):
         """
         Prints the values of endogenous and predetermined variables in a given block for a specific period.
 
@@ -1197,9 +1197,12 @@ class ModelSolver:
         period_index : int
             The index of the period for which variable values will be shown.
 
+        noisy : bool, optional
+            Whether output should be printed or returned.
+
         Returns:
         --------
-        None
+        None or (df_endo, df_pred)
 
         Example:
         --------
@@ -1227,13 +1230,19 @@ class ModelSolver:
 
             _, block_endo_lags, block_endo_cols = get_var_info(block[0])
             block_endo_vals = self._get_vals(output_array, block_endo_cols, block_endo_lags, period_index, False)
-            print(f'\nBlock {i} has endogenous variables in {self._last_solution.index[period_index]} that evaluate to:')
-            print(*['='.join([x, str(y)]) for x, y in zip([self._var_mapping.get(x) for x in block[0]], block_endo_vals)], sep='\n')
 
             _, block_pred_lags, block_pred_cols = get_var_info(block[1])
             block_pred_vals = self._get_vals(output_array, block_pred_cols, block_pred_lags, period_index, False)
-            print(f'\nBlock {i} has predetermined variables in {self._last_solution.index[period_index]} that evaluate to:')
-            print(*['='.join([x, str(y)]) for x, y in zip([self._var_mapping.get(x) for x in block[1]], block_pred_vals)], sep='\n')
+            if noisy:
+                print(f'\nBlock {i} has endogenous variables in {self._last_solution.index[period_index]} that evaluate to:')
+                print(*['='.join([x, str(y)]) for x, y in zip([self._var_mapping.get(x) for x in block[0]], block_endo_vals)], sep='\n')
+                print(f'\nBlock {i} has predetermined variables in {self._last_solution.index[period_index]} that evaluate to:')
+                print(*['='.join([x, str(y)]) for x, y in zip([self._var_mapping.get(x) for x in block[1]], block_pred_vals)], sep='\n')
+            else:
+                return (
+                    pd.Series(block_endo_vals, index=[self._var_mapping.get(x) for x in block[0]]),
+                    pd.Series(block_pred_vals, index=[self._var_mapping.get(x) for x in block[1]])
+                )
 
         except AttributeError:
             raise RuntimeError('no solution exists')
