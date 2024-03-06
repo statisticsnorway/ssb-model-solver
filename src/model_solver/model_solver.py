@@ -1283,7 +1283,7 @@ class ModelSolver:
         Example:
         --------
         >>> model = ModelSolver(equations, endogenous)
-        >>> sensitivity_df = model.sensitivity(1, 3, method='pct', exog_vars=['exog_var1', 'exog_var2'])
+        >>> sensitivity_df = model.sensitivity(1, 3, method='pct', exog_subset=['exog_var1', 'exog_var2'])
         >>> print(sensitivity_df)
 
         Output:
