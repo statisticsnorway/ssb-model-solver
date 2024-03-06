@@ -105,12 +105,12 @@ class ModelSolver:
         self._max_iter = 10
 
         print('-'*100)
-        print('Initializing model...')
+        print('Initializing model')
 
         # Model equations and endogenous variables are checked and stored as immutable tuples (as opposed to mutable lists)
         self._eqns, self._endo_vars = self._init_model(eqns, endo_vars)
 
-        print('* Analyzing model...')
+        print('* Analyzing model')
 
         # Analyzing equation strings to determine variables, lags and coefficients
         self._eqns_analyzed, self._var_mapping, self._lag_mapping = self._analyze_eqns()
@@ -305,7 +305,7 @@ class ModelSolver:
         if self._some_error:
             return
 
-        print('\t* Generating bipartite graph connecting equations and endogenous variables')
+        print('\t* Generating bipartite graph (BiGraph) connecting equations and endogenous variables')
 
         # Make nodes in bipartite graph with equations U (0) and endogenous variables in V (1)
         eqns_endo_vars_bigraph = nx.Graph()
@@ -369,7 +369,7 @@ class ModelSolver:
         if self._some_error:
             return
 
-        print('\t* Finding condensation of DiGraph (i.e. finding minimum simulataneous equation blocks)')
+        print('\t* Finding condensation of DiGraph (i.e. determining minimal blocks of systems of simulataneous equations)')
 
         # Generate condensation graph of equation graph such that every node is a strong component of the equation graph
         condenced_model_digraph = nx.condensation(model_digraph)
@@ -529,7 +529,7 @@ class ModelSolver:
         if any(x in self.endo_vars for x in new_endo_vars):
             raise RuntimeError('some variables in new_endo_vars are endogenous')
 
-        print('Analyzing model...')
+        print('Analyzing model')
         self._endo_vars = *[x for x in self._endo_vars if x not in old_endo_vars], *new_endo_vars,
 
         (
@@ -717,7 +717,7 @@ class ModelSolver:
             print(f'\n{len(block[2])} equations:')
             print('\n'.join(block[2]))
         else:
-            raise IndexError(f'Block {i} is not in model')
+            raise IndexError(f'block {i} is not in model')
 
 
     def solve_model(self, input_df: pd.DataFrame, jit=True) -> pd.DataFrame:
@@ -757,7 +757,7 @@ class ModelSolver:
             raise TypeError('all columns in input_df must be numeric')
 
         print('-'*100)
-        print('Solving model...')
+        print('Solving model')
 
         output_df = input_df.copy(deep=True).astype(float)
         output_array = output_df.to_numpy(dtype=np.float64)
@@ -1045,7 +1045,7 @@ class ModelSolver:
                 mapping[node] = node
 
         if graph_to_plot.number_of_nodes() > max_nodes:
-            print('Graph is too big to plot')
+            print('Graph is too big to meaningfully plot')
             return
 
         graph_to_plot.add_edges_from(subgraph.edges())
@@ -1118,11 +1118,11 @@ class ModelSolver:
     ## Finds all exogenous variables that are ancestors to block
     def _trace_to_exog_vars(self, i):
         if i < 1:
-            raise IndexError('Block must be >=1')
+            raise IndexError('block must be >=1')
 
         var_node = len(self._blocks)-i
         if var_node < 0:
-            raise IndexError(f'Block {i} is not in model')
+            raise IndexError(f'block {i} is not in model')
 
         ancs_nodes = nx.ancestors(self._augmented_condenced_model_digraph, var_node)
 
