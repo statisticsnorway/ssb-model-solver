@@ -1,7 +1,8 @@
-##################################
-# Author: Magnus Kvåle Helliesen #
-# mkh@ssb.no                     #
-##################################
+#########################################
+# ModelSolver                           #
+# By: Magnus Kvåle Helliesen            #
+# mkh@ssb.no/magnus.helliesen@gmail.com #
+#########################################
 
 import numpy as np
 import networkx as nx
