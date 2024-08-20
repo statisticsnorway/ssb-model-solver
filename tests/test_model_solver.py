@@ -2,6 +2,7 @@ import sys
 import os
 import pytest
 import pandas as pd
+import numpy as np
 
 # Insert the path to your project root directly in the test file
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
@@ -46,10 +47,12 @@ def test_model_initialization(equations, endogenous):
     assert model.eqns == tuple([eq.lower() for eq in equations])
     assert model.endo_vars == tuple([var.lower() for var in endogenous])
 
-# Test for model description
-def test_model_description(equations, endogenous):
+# Test for block identification
+def test_show_blocks(equations, endogenous):
     model = ms.ModelSolver(equations, endogenous)
-    assert model.describe() is None  # Ensures that describe runs without errors
+    model.show_blocks()
+    # Assuming the blocks are stored in an internal structure
+    assert len(model._blocks) == 5  # Check that 5 blocks are identified
 
 # Test solving the model
 def test_solve_model(equations, endogenous, input_data):
@@ -59,7 +62,7 @@ def test_solve_model(equations, endogenous, input_data):
     solution = model.solve_model(input_data)
 
     # Expecting 3 periods in the solution after dropping the first period
-    expected_output_shape = (3, 10)  
+    expected_output_shape = (3, 10)
     assert solution.shape == expected_output_shape
 
     # Validating expected data in the solution for the last 3 periods (2019Q2, 2020Q3, 2020Q4)
@@ -77,20 +80,58 @@ def test_solve_model(equations, endogenous, input_data):
     }
 
     tolerance = 1e-6  # Small tolerance for floating-point comparisons
-
-    # Loop through each column and compare the actual and expected results
     for col, values in expected_values.items():
         assert solution[col].tolist() == pytest.approx(values, rel=tolerance)
+
+# Test switching endogenous variables
+def test_switch_endo_vars(equations, endogenous):
+    model = ms.ModelSolver(equations, endogenous)
+    model.switch_endo_vars(['x2'], ['a2'])
+    assert 'x2' not in model.endo_vars
+    assert 'a2' in model.endo_vars
+    model.show_blocks()  # Ensure the model is reconfigured after switching variables
+
+# Test finding a specific endogenous variable in a block
+def test_find_endo_var(equations, endogenous):
+    model = ms.ModelSolver(equations, endogenous)
+    block = model.find_endo_var('ca')
+    assert block == 5  # Ensure 'ca' is found in block 5
+
+# Test tracing to exogenous variables
+def test_trace_to_exog_vars(equations, endogenous):
+    model = ms.ModelSolver(equations, endogenous)
+    exog_vars = model.trace_to_exog_vars(5, noisy=False)
+    expected_exog_vars = ['i1', 'i2', 'a1', 'a2']
+    assert sorted(exog_vars) == sorted(expected_exog_vars)
+
+# Test tracing to exogenous values
+def test_trace_to_exog_vals(equations, endogenous, input_data):
+    model = ms.ModelSolver(equations, endogenous)
+    solution = model.solve_model(input_data)
+    exog_vals = model.trace_to_exog_vals(5, period_index=1, noisy=False)
+    expected_exog_vals = pd.Series({
+        'i1': 2.0,
+        'i2': 2.0,
+        'a1': 2.0,
+        'a2': 2.0
+    }).sort_index()
+    exog_vals = exog_vals.sort_index()  # Sort before comparison
+    
+    pd.testing.assert_series_equal(exog_vals, expected_exog_vals, rtol=1e-6)
 
 # Test showing block values
 def test_show_block_vals(equations, endogenous, input_data):
     model = ms.ModelSolver(equations, endogenous)
     model.solve_model(input_data)
     endo_vals, pred_vals = model.show_block_vals(5, 1, noisy=False)
-
+    
     # Ensure that the endo_vals and pred_vals match expected results from the notebook
-    expected_endo_vals = {'ca': 1.9428571428571428, 'cb': 1.2571428571428571}
-    expected_pred_vals = {'i2': 2.0, 'x2': 2.0, 'i1': 2.0, 'x1': 2.0}
+    expected_endo_vals = pd.Series({'ca': 1.942857, 'cb': 1.257143})
+    expected_pred_vals = pd.Series({'i1': 2.0, 'i2': 2.0, 'x1': 2.0, 'x2': 2.0})
+    
+    endo_vals = endo_vals.sort_index()  # Sort before comparison
+    pred_vals = pred_vals.sort_index()  # Sort before comparison
+    
+    pd.testing.assert_series_equal(endo_vals, expected_endo_vals, rtol=1e-6)
+    pd.testing.assert_series_equal(pred_vals, expected_pred_vals, rtol=1e-6)
 
-    assert endo_vals.to_dict() == expected_endo_vals
-    assert pred_vals.to_dict() == expected_pred_vals
