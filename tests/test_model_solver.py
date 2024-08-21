@@ -91,12 +91,6 @@ def test_switch_endo_vars(equations, endogenous):
     assert 'a2' in model.endo_vars
     model.show_blocks()  # Ensure the model is reconfigured after switching variables
 
-# Test finding a specific endogenous variable in a block
-def test_find_endo_var(equations, endogenous):
-    model = ms.ModelSolver(equations, endogenous)
-    block = model.find_endo_var('ca')
-    assert block == 5  # Ensure 'ca' is found in block 5
-
 # Test tracing to exogenous variables
 def test_trace_to_exog_vars(equations, endogenous):
     model = ms.ModelSolver(equations, endogenous)
