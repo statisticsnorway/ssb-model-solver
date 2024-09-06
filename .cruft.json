@@ -1,15 +1,29 @@
 {
-  "template": "https://github.com/statisticsnorway/ssb-project-template-stat",
-  "commit": "cb5e93fbcb298920b3d76770352d823840c49a38",
-  "checkout": "1.0.0",
+  "template": "https://github.com/statisticsnorway/ssb-pypitemplate.git",
+  "commit": "70e4bd378ffc9e87a885d938e3befd89ea26ad5b",
+  "checkout": "2024.8.8",
   "context": {
     "cookiecutter": {
-      "full_name": "Magnus Helliesen",
-      "email": "mkh@ssb.no",
       "project_name": "ssb-model-solver",
-      "description": "Class to define, block analyse and solve dynamic and algebraic models numerically",
-      "license_year": "2023",
-      "_template": "https://github.com/statisticsnorway/ssb-project-template-stat"
+      "package_name": "model_solver",
+      "friendly_name": "SSB Model Solver",
+      "copyright_owner": "Statistics Norway",
+      "copyright_year": "2024",
+      "author": "Benedikt Goodman",
+      "email": "benedikt.goodman@ssb.no",
+      "github_organization": "statisticsnorway",
+      "version": "1.1.23",
+      "license": "MIT",
+      "development_status": "Development Status :: 4 - Beta",
+      "code_quality_level": "Medium",
+      "_copy_without_render": [
+        "*.rst_t"
+      ],
+      "_jinja2_env_vars": {
+        "lstrip_blocks": true,
+        "trim_blocks": true
+      },
+      "_template": "https://github.com/statisticsnorway/ssb-pypitemplate.git"
     }
   },
   "directory": null
