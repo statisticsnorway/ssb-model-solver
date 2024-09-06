@@ -86,7 +86,7 @@ extend-exclude = [
 [tool.ruff.lint]
 select = [
     "A",    # prevent using keywords that clobber python builtins
-    "ANN",  # check type annotations
+#    "ANN",  # check type annotations
     "B",    # bugbear: security warnings
     "D",    # documentation
     "E",    # pycodestyle

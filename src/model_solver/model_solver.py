@@ -4,19 +4,23 @@
 # mkh@ssb.no/magnus.helliesen@gmail.com #
 #########################################
 
-import numpy as np
-import networkx as nx
-import pandas as pd
-from symengine import var, Matrix, Lambdify, Max, Min, log, exp
-import matplotlib.pyplot as plt
 from collections import Counter
 from functools import cache
+
+import matplotlib.pyplot as plt
+import networkx as nx
+import numpy as np
+import pandas as pd
 from numba import njit
+from symengine import Lambdify
+from symengine import Matrix
+from symengine import Max
+from symengine import var
 
 
 class ModelSolver:
-    """
-    ModelSolver is designed to handle and solve mathematical models represented by a system of equations.
+    """ModelSolver is designed to handle and solve mathematical models represented by a system of equations.
+
     It supports various mathematical functions such as min, max, log, and exp.
     This class allows you to initialize a model with a list of equations and endogenous variables.
     It subsequently solves the model using input data stored in a Pandas DataFrame.
@@ -50,12 +54,12 @@ class ModelSolver:
     Now, "solution_df" is a Pandas DataFrame with the same dimensions as "input_df," but with the endogenous variables replaced by the solutions to the model.
     The last solution is also stored in "model.last_solution."
 
-    Attributes
+    Attributes:
     ----------
     last_solution : pandas DataFrame
         The last solved solution.
 
-    Methods
+    Methods:
     -------
     solve_model(input_df)
         Solves the model based on input data in a Pandas DataFrame.
@@ -561,8 +565,7 @@ class ModelSolver:
         return None, obj_fun_out, jac_out
 
     def switch_endo_vars(self, old_endo_vars: list[str], new_endo_vars: list[str]):
-        """
-        Sets old_endo_vars as exogenous and new_endo_vars as endogenous and performs block analysis.
+        """Sets old_endo_vars as exogenous and new_endo_vars as endogenous and performs block analysis.
 
         Parameters:
         ----------
@@ -591,7 +594,6 @@ class ModelSolver:
         >>> model = ModelSolver(equations, endogenous)
         >>> model.switch_endo_vars(['var1', 'var2'], ['var3', 'var4'])
         """
-
         if all(x in self.endo_vars for x in old_endo_vars) is False:
             raise RuntimeError("all variables in old_endo_vars are not endogenous")
         if any(x in self.endo_vars for x in new_endo_vars):
@@ -615,8 +617,7 @@ class ModelSolver:
         print("Finished")
 
     def find_endo_var(self, endo_var: str, noisy=False):
-        """
-        Find the block that solves the specified endogenous variable.
+        """Find the block that solves the specified endogenous variable.
 
         Parameters
         ----------
@@ -626,19 +627,18 @@ class ModelSolver:
         noisy : bool, optional
             Whether output should be printed or returned.
 
-        Returns
+        Returns:
         -------
         str or None
             The name of the block that solves the specified endogenous variable.
             Returns None if the endogenous variable is not found in any block.
 
-        Notes
+        Notes:
         -----
         This function searches for the specified endogenous variable in the model's
         blocks and returns the name of the block that solves it. If the endogenous
         variable is not found in any block, it returns None.
         """
-
         block = [key for key, val in self._blocks.items() if endo_var.lower() in val[0]]
         if block:
             if noisy:
@@ -649,17 +649,15 @@ class ModelSolver:
             raise IndexError(f"{endo_var} is not endogenous in model")
 
     def describe(self):
-        """
-        Display a summary of the model's characteristics.
+        """Display a summary of the model's characteristics.
 
         Prints information about the model, including the number of equations, blocks,
         simple definition blocks, and the distribution of equation counts in the blocks.
 
-        Returns
+        Returns:
         -------
         None
         """
-
         print("-" * 100)
         print(
             f"Model consists of {len(self.eqns)} equations in {len(self._blocks)} blocks"
@@ -674,8 +672,7 @@ class ModelSolver:
         print("-" * 100)
 
     def show_blocks(self):
-        """
-        Prints endogenous and exogenous variables and equations for every block in the model.
+        """Prints endogenous and exogenous variables and equations for every block in the model.
 
         Iterates through all blocks in the model and calls the `show_block` function to display their details.
 
@@ -735,14 +732,12 @@ class ModelSolver:
         - eqn_n1: var_n1 = exog_var_n1 + exog_var_n2
         - eqn_n2: var_n2 = var_n1 + exog_var_n2
         """
-
         for key, _ in self._blocks.items():
             print(" ".join(["-" * 50, "Block", str(key), "-" * 50]))
             self.show_block(key)
 
     def show_block(self, i: int):
-        """
-        Prints endogenous and exogenous variables and equations for a given block.
+        """Prints endogenous and exogenous variables and equations for a given block.
 
         Parameters:
         -----------
@@ -778,7 +773,6 @@ class ModelSolver:
         - eqn3: var3 = pred_var2 + pred_var3
         - eqn4: var4 = var3 + pred_var1
         """
-
         block = self._blocks.get(i)
 
         if block:
@@ -815,8 +809,7 @@ class ModelSolver:
             raise IndexError(f"block {i} is not in model")
 
     def solve_model(self, input_df: pd.DataFrame, jit=True) -> pd.DataFrame:
-        """
-        Solves the model subject to a given DataFrame.
+        """Solves the model subject to a given DataFrame.
 
         Parameters:
         -----------
@@ -843,7 +836,6 @@ class ModelSolver:
         >>> input_data = pd.DataFrame({'var1': [1.0, 2.0, 3.0], 'var2': [0.5, 1.0, 1.5]})
         >>> output_data = model.solve_model(input_data)
         """
-
         if self._some_error:
             return
 
@@ -1002,7 +994,7 @@ class ModelSolver:
     @njit
     def _get_vals_jit(array: np.array, cols: np.array, lags: np.array, period: int):
         vals = np.array([0.0], dtype=np.float64)
-        for col, lag in zip(cols, lags):
+        for col, lag in zip(cols, lags, strict=False):
             vals = np.append(vals, array[period - lag, col])
         return vals[1:]
 
@@ -1011,7 +1003,7 @@ class ModelSolver:
     @staticmethod
     def _get_vals_nojit(array: np.array, cols: np.array, lags: np.array, period: int):
         vals = np.array([], dtype=np.float64)
-        for col, lag in zip(cols, lags):
+        for col, lag in zip(cols, lags, strict=False):
             vals = np.append(vals, array[period - lag, col])
         return vals
 
@@ -1056,8 +1048,7 @@ class ModelSolver:
         max_nodes: int = 50,
         figsize=(7.5, 7.5),
     ):
-        """
-        Draws a directed graph of a block containing the given variable with a limited number of ancestors and descendants.
+        """Draws a directed graph of a block containing the given variable with a limited number of ancestors and descendants.
 
         Parameters:
         -----------
@@ -1087,7 +1078,6 @@ class ModelSolver:
 
         Draws a directed graph of the block containing 'var1' with up to 3 generations of ancestors and 2 generations of descendants.
         """
-
         if self._some_error:
             return
 
@@ -1218,8 +1208,7 @@ class ModelSolver:
         return var_node
 
     def trace_to_exog_vars(self, i: str, noisy=True):
-        """
-        Prints all exogenous variables that are ancestors to the given block.
+        """Prints all exogenous variables that are ancestors to the given block.
 
         Parameters:
         -----------
@@ -1243,7 +1232,6 @@ class ModelSolver:
         exog_var3
         ...
         """
-
         if self._some_error:
             return
 
@@ -1278,8 +1266,7 @@ class ModelSolver:
         return [x for x in ancs_exog_vars if x not in self.endo_vars]
 
     def trace_to_exog_vals(self, i: int, period_index: int, noisy=True):
-        """
-        Traces the given block back to exogenous values and prints those values.
+        """Traces the given block back to exogenous values and prints those values.
 
         Parameters:
         -----------
@@ -1307,7 +1294,6 @@ class ModelSolver:
         exog_var3=10.0
         ...
         """
-
         try:
             output_array = self._last_solution.to_numpy(dtype=np.float64, copy=True)
             var_col_index = {
@@ -1325,7 +1311,7 @@ class ModelSolver:
                     _,
                     ancs_exog_lags,
                     ancs_exog_cols,
-                ) = get_var_info((self._var_mapping.get(x) for x in ancs_exog_vars))
+                ) = get_var_info(self._var_mapping.get(x) for x in ancs_exog_vars)
                 ancs_exog_vals = self._get_vals(
                     output_array, ancs_exog_cols, ancs_exog_lags, period_index, False
                 )
@@ -1336,7 +1322,7 @@ class ModelSolver:
                     print(
                         *[
                             "=".join([x, str(y)])
-                            for x, y in zip(ancs_exog_vars, ancs_exog_vals)
+                            for x, y in zip(ancs_exog_vars, ancs_exog_vals, strict=False)
                         ],
                         sep="\n",
                     )
@@ -1347,8 +1333,7 @@ class ModelSolver:
             raise RuntimeError("no solution exists")
 
     def show_block_vals(self, i: int, period_index: int, noisy=True):
-        """
-        Prints the values of endogenous and predetermined variables in a given block for a specific period.
+        """Prints the values of endogenous and predetermined variables in a given block for a specific period.
 
         Parameters:
         -----------
@@ -1380,7 +1365,6 @@ class ModelSolver:
         pred_var2=9.7
         ...
         """
-
         try:
             output_array = self._last_solution.to_numpy(dtype=np.float64, copy=True)
             var_col_index = {
@@ -1412,7 +1396,7 @@ class ModelSolver:
                         "=".join([x, str(y)])
                         for x, y in zip(
                             [self._var_mapping.get(x) for x in block[0]],
-                            block_endo_vals,
+                            block_endo_vals, strict=False,
                         )
                     ],
                     sep="\n",
@@ -1425,7 +1409,7 @@ class ModelSolver:
                         "=".join([x, str(y)])
                         for x, y in zip(
                             [self._var_mapping.get(x) for x in block[1]],
-                            block_pred_vals,
+                            block_pred_vals, strict=False,
                         )
                     ],
                     sep="\n",
@@ -1452,19 +1436,18 @@ class ModelSolver:
                 return (tuple([]), np.array([], dtype=int), np.array([], dtype=int))
             # Stole zip-solution from: https://stackoverflow.com/questions/21444338/transpose-nested-list-in-python
             names, lags = tuple(
-                map(list, zip(*[self._lag_mapping.get(x) for x in vars]))
+                map(list, zip(*[self._lag_mapping.get(x) for x in vars], strict=False))
             )
             cols = tuple(var_col_index.get(x) for x in names)
             if any(x is None for x in cols):
-                missing = [x for x, y in zip(names, cols) if y is None]
+                missing = [x for x, y in zip(names, cols, strict=False) if y is None]
                 raise KeyError(f'{",".join(missing)} is not in DataFrame')
             return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
 
         return get_var_info
 
     def sensitivity(self, i: int, period_index: int, method="std", exog_subset=None):
-        """
-        Analyses sensitivity of endogenous variables to exogenous variables for a specific period.
+        """Analyses sensitivity of endogenous variables to exogenous variables for a specific period.
 
         Parameters:
         -----------
@@ -1502,7 +1485,6 @@ class ModelSolver:
         exog_var2  |    0.45     |    0.56    |
         ...
         """
-
         if self._some_error:
             return
 
