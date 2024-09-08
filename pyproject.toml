@@ -44,6 +44,7 @@ sphinx-click = ">=3.0.2"
 typeguard = ">=2.13.3"
 xdoctest = { extras = ["colors"], version = ">=0.15.10" }
 myst-parser = { version = ">=0.16.1" }
+pandas-stubs = ">=2.2.2.240807"
 
 [tool.poetry.scripts]
 ssb-model-solver = "model_solver.__main__:main"
@@ -68,6 +69,16 @@ pretty = true
 show_column_numbers = true
 show_error_context = true
 
+[[tool.mypy.overrides]]
+module = [
+#    "matplotlib",
+#    "matplotlib.pyplot",
+    "networkx.*",
+    "numba.*",
+    "symengine.*",
+]
+ignore_missing_imports = true
+
 [tool.ruff]
 force-exclude = true  # Apply excludes to pre-commit
 show-fixes = true
@@ -88,7 +99,7 @@ select = [
     "A",    # prevent using keywords that clobber python builtins
 #    "ANN",  # check type annotations
     "B",    # bugbear: security warnings
-    "D",    # documentation
+#    "D",    # documentation
     "E",    # pycodestyle
     "F",    # pyflakes
     "ISC",  # implicit string concatenation

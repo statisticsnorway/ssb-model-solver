@@ -101,7 +101,7 @@ class ModelSolver:
     """
 
     # Reads in equations and endogenous variables and does a number of operations, e.g. analyzing block structure using graph theory.
-    def __init__(self, eqns: list[str], endo_vars: list[str]):
+    def __init__(self, eqns: list[str], endo_vars: list[str]) -> None:
         self._some_error = False
         self._lag_notation = "__LAG"
         self._max_lag = 0
@@ -143,30 +143,30 @@ class ModelSolver:
 
     @property
     def exog_vars(self):
-        vars = set()
+        vars_ = set()
         for _, _, _, lag_mapping in self._eqns_analyzed:
             for _, val in lag_mapping.items():
-                vars.update((val[0],))
-        return tuple(vars.difference(self.endo_vars))
+                vars_.update((val[0],))
+        return tuple(vars_.difference(self.endo_vars))
 
     @property
-    def max_lag(self):
+    def max_lag(self) -> int:
         return self._max_lag
 
     @property
-    def root_tolerance(self):
+    def root_tolerance(self) -> float:
         return self._root_tolerance
 
     @property
-    def max_iter(self):
+    def max_iter(self) -> int:
         return self._max_iter
 
     @property
     def last_solution(self):
         try:
             return self._last_solution.iloc[self.max_lag :, :]
-        except AttributeError:
-            raise AttributeError("no solution exists")
+        except AttributeError as exc:
+            raise AttributeError("no solution exists") from exc
 
     @root_tolerance.setter
     def root_tolerance(self, val: float):
@@ -186,7 +186,7 @@ class ModelSolver:
 
     # Imports lists containing equations and endogenous variables stored as strings
     # Checks that there are no blank lines, sets everything to lowercase and returns as tuples
-    def _init_model(self, eqns: list, endo_vars: list):
+    def _init_model(self, eqns: list[str], endo_vars: list[str]):
         print("* Importing equations")
         if any(x.strip() == "" for x in eqns):
             self._some_error = True
@@ -233,20 +233,20 @@ class ModelSolver:
         component, lag = "", ""
         is_num, is_var, is_lag, is_sci = False, False, False, False
 
-        for chr in "".join([eqn, " "]):
-            is_num = (chr.isnumeric() and not is_var) or is_num
-            is_var = (chr.isalpha() and not is_num) or is_var
-            is_lag = (is_var and chr == "(") or is_lag
-            is_sci = (is_num and chr == "e") or is_sci
+        for chr_ in "".join([eqn, " "]):
+            is_num = (chr_.isnumeric() and not is_var) or is_num
+            is_var = (chr_.isalpha() and not is_num) or is_var
+            is_lag = (is_var and chr_ == "(") or is_lag
+            is_sci = (is_num and chr_ == "e") or is_sci
 
-            if is_var and chr == "(" and component in ["max", "min", "log", "exp"]:
-                parsed_eqn_with_lag_notation += ("".join([component, chr]),)
+            if is_var and chr_ == "(" and component in ["max", "min", "log", "exp"]:
+                parsed_eqn_with_lag_notation += ("".join([component, chr_]),)
                 is_var, is_lag = False, False
                 component, lag = "", ""
                 continue
 
             # Check if character is something other than a numeric, variable or lag and write numeric or variable to parsed equation
-            if chr in ["=", "+", "-", "*", "/", "(", ")", ",", " "] and not (
+            if chr_ in ["=", "+", "-", "*", "/", "(", ")", ",", " "] and not (
                 is_lag or is_sci
             ):
                 if is_num:
@@ -269,26 +269,26 @@ class ModelSolver:
                         self._max_lag = max(
                             self._max_lag, -int(lag.replace("(", "").replace(")", ""))
                         )
-                if chr != " ":
-                    parsed_eqn_with_lag_notation += (chr,)
+                if chr_ != " ":
+                    parsed_eqn_with_lag_notation += (chr_,)
                 component, lag = "", ""
                 is_num, is_var, is_lag = False, False, False
                 continue
 
-            if is_sci and chr.isnumeric():
+            if is_sci and chr_.isnumeric():
                 is_sci = False
 
             if is_num:
-                component = "".join([component, chr])
+                component = "".join([component, chr_])
                 continue
 
             if is_var and not is_lag:
-                component = "".join([component, chr])
+                component = "".join([component, chr_])
                 continue
 
             if is_var and is_lag:
-                lag = "".join([lag, chr])
-                if chr == ")":
+                lag = "".join([lag, chr_])
+                if chr_ == ")":
                     is_lag = False
 
         return parsed_eqn_with_lag_notation, var_mapping, lag_mapping
@@ -367,9 +367,9 @@ class ModelSolver:
             if len(maximum_bipartite_match) / 2 < len(self.eqns):
                 self._some_error = True
                 raise RuntimeError("model is over or under spesified")
-        except nx.AmbiguousSolution:
+        except nx.AmbiguousSolution as exc:
             self._some_error = True
-            raise RuntimeError("unable to analyze model")
+            raise RuntimeError("unable to analyze model") from exc
 
         return maximum_bipartite_match
 
@@ -994,7 +994,7 @@ class ModelSolver:
     @njit
     def _get_vals_jit(array: np.array, cols: np.array, lags: np.array, period: int):
         vals = np.array([0.0], dtype=np.float64)
-        for col, lag in zip(cols, lags, strict=False):
+        for col, lag in zip(cols, lags):  # noqa: B905
             vals = np.append(vals, array[period - lag, col])
         return vals[1:]
 
@@ -1003,7 +1003,7 @@ class ModelSolver:
     @staticmethod
     def _get_vals_nojit(array: np.array, cols: np.array, lags: np.array, period: int):
         vals = np.array([], dtype=np.float64)
-        for col, lag in zip(cols, lags, strict=False):
+        for col, lag in zip(cols, lags):  # noqa: B905
             vals = np.append(vals, array[period - lag, col])
         return vals
 
@@ -1322,15 +1322,15 @@ class ModelSolver:
                     print(
                         *[
                             "=".join([x, str(y)])
-                            for x, y in zip(ancs_exog_vars, ancs_exog_vals, strict=False)
+                            for x, y in zip(ancs_exog_vars, ancs_exog_vals, strict=True)
                         ],
                         sep="\n",
                     )
                 else:
                     return pd.Series(ancs_exog_vals, index=ancs_exog_vars)
 
-        except AttributeError:
-            raise RuntimeError("no solution exists")
+        except AttributeError as exc:
+            raise RuntimeError("no solution exists") from exc
 
     def show_block_vals(self, i: int, period_index: int, noisy=True):
         """Prints the values of endogenous and predetermined variables in a given block for a specific period.
@@ -1396,7 +1396,7 @@ class ModelSolver:
                         "=".join([x, str(y)])
                         for x, y in zip(
                             [self._var_mapping.get(x) for x in block[0]],
-                            block_endo_vals, strict=False,
+                            block_endo_vals, strict=True,
                         )
                     ],
                     sep="\n",
@@ -1409,7 +1409,7 @@ class ModelSolver:
                         "=".join([x, str(y)])
                         for x, y in zip(
                             [self._var_mapping.get(x) for x in block[1]],
-                            block_pred_vals, strict=False,
+                            block_pred_vals, strict=True,
                         )
                     ],
                     sep="\n",
@@ -1426,8 +1426,8 @@ class ModelSolver:
                     ),
                 )
 
-        except AttributeError:
-            raise RuntimeError("no solution exists")
+        except AttributeError as exc:
+            raise RuntimeError("no solution exists") from exc
 
     # Function that returns function that returns names, columns and lags for variables
     def gen_get_var_info(self, var_col_index):
@@ -1436,11 +1436,11 @@ class ModelSolver:
                 return (tuple([]), np.array([], dtype=int), np.array([], dtype=int))
             # Stole zip-solution from: https://stackoverflow.com/questions/21444338/transpose-nested-list-in-python
             names, lags = tuple(
-                map(list, zip(*[self._lag_mapping.get(x) for x in vars], strict=False))
+                map(list, zip(*[self._lag_mapping.get(x) for x in vars], strict=True))
             )
             cols = tuple(var_col_index.get(x) for x in names)
             if any(x is None for x in cols):
-                missing = [x for x, y in zip(names, cols, strict=False) if y is None]
+                missing = [x for x, y in zip(names, cols, strict=True) if y is None]
                 raise KeyError(f'{",".join(missing)} is not in DataFrame')
             return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
 
@@ -1495,8 +1495,8 @@ class ModelSolver:
                     self._last_solution.columns.str.lower().to_list()
                 )
             }
-        except AttributeError:
-            raise AttributeError("no solution exists")
+        except AttributeError as exc:
+            raise AttributeError("no solution exists") from exc
 
         get_var_info = cache(self.gen_get_var_info(var_col_index))
 
