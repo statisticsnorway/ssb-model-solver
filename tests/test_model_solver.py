@@ -1,14 +1,9 @@
-import os
-import sys
-
 import pandas as pd
 import pytest
 
-# Insert the path to your project root directly in the test file
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
-
-# Import the model_solver module correctly
 import model_solver as ms
+
+TOLERANCE = 1e-6  # Small tolerance for floating-point comparisons
 
 
 # Fixtures for test data
@@ -88,9 +83,8 @@ def test_solve_model(equations, endogenous, input_data):
         "i2": [2.0, 3.0, 4.0],
     }
 
-    tolerance = 1e-6  # Small tolerance for floating-point comparisons
     for col, values in expected_values.items():
-        assert solution[col].tolist() == pytest.approx(values, rel=tolerance)
+        assert solution[col].tolist() == pytest.approx(values, rel=TOLERANCE)
 
 
 # Test switching endogenous variables
@@ -120,7 +114,7 @@ def test_trace_to_exog_vals(equations, endogenous, input_data):
     ).sort_index()
     exog_vals = exog_vals.sort_index()  # Sort before comparison
 
-    pd.testing.assert_series_equal(exog_vals, expected_exog_vals, rtol=1e-6)
+    pd.testing.assert_series_equal(exog_vals, expected_exog_vals, rtol=TOLERANCE)
 
 
 # Test showing block values
@@ -136,5 +130,11 @@ def test_show_block_vals(equations, endogenous, input_data):
     endo_vals = endo_vals.sort_index()  # Sort before comparison
     pred_vals = pred_vals.sort_index()  # Sort before comparison
 
-    pd.testing.assert_series_equal(endo_vals, expected_endo_vals, rtol=1e-6)
-    pd.testing.assert_series_equal(pred_vals, expected_pred_vals, rtol=1e-6)
+    pd.testing.assert_series_equal(endo_vals, expected_endo_vals, rtol=TOLERANCE)
+    pd.testing.assert_series_equal(pred_vals, expected_pred_vals, rtol=TOLERANCE)
+
+
+def test_sensitivity(equations, endogenous, input_data):
+    model = ms.ModelSolver(equations, endogenous)
+    model.solve_model(input_data)
+    # df = model.sensitivity(1, 3, method='pct', exog_subset=['exog_var1', 'exog_var2'])

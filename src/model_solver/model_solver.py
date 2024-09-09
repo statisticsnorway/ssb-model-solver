@@ -5,13 +5,16 @@
 #########################################
 
 from collections import Counter
+from collections.abc import Callable
 from functools import cache
+from typing import Any
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import pandas as pd
 from numba import njit
+from numpy.typing import NDArray
 from symengine import Lambdify
 from symengine import Matrix
 from symengine import Max
@@ -134,16 +137,16 @@ class ModelSolver:
         print("-" * 100)
 
     @property
-    def eqns(self):
+    def eqns(self) -> tuple[str, ...]:
         return self._eqns
 
     @property
-    def endo_vars(self):
+    def endo_vars(self) -> tuple[str, ...]:
         return self._endo_vars
 
     @property
-    def exog_vars(self):
-        vars_ = set()
+    def exog_vars(self) -> tuple[str, ...]:
+        vars_: set[str] = set()
         for _, _, _, lag_mapping in self._eqns_analyzed:
             for _, val in lag_mapping.items():
                 vars_.update((val[0],))
@@ -154,30 +157,30 @@ class ModelSolver:
         return self._max_lag
 
     @property
-    def root_tolerance(self) -> float:
-        return self._root_tolerance
-
-    @property
-    def max_iter(self) -> int:
-        return self._max_iter
-
-    @property
-    def last_solution(self):
+    def last_solution(self) -> pd.DataFrame:
         try:
             return self._last_solution.iloc[self.max_lag :, :]
         except AttributeError as exc:
             raise AttributeError("no solution exists") from exc
 
+    @property
+    def root_tolerance(self) -> float:
+        return self._root_tolerance
+
     @root_tolerance.setter
-    def root_tolerance(self, val: float):
+    def root_tolerance(self, val: float) -> None:
         if isinstance(val, float) is False:
             raise ValueError("tolerance for termination must be of type float")
         if val <= 0:
             raise ValueError("tolerance for termination must be positive")
         self._root_tolerance = val
 
+    @property
+    def max_iter(self) -> int:
+        return self._max_iter
+
     @max_iter.setter
-    def max_iter(self, val: int):
+    def max_iter(self, val: int) -> None:
         if isinstance(val, int) is False:
             raise ValueError("maximum number of iterations must be an integer")
         if val < 0:
@@ -186,7 +189,9 @@ class ModelSolver:
 
     # Imports lists containing equations and endogenous variables stored as strings
     # Checks that there are no blank lines, sets everything to lowercase and returns as tuples
-    def _init_model(self, eqns: list[str], endo_vars: list[str]):
+    def _init_model(
+        self, eqns: list[str], endo_vars: list[str]
+    ) -> tuple[tuple[str, ...], tuple[str, ...]]:
         print("* Importing equations")
         if any(x.strip() == "" for x in eqns):
             self._some_error = True
@@ -206,15 +211,24 @@ class ModelSolver:
         return tuple(x.lower() for x in eqns), tuple(x.lower() for x in endo_vars)
 
     # Analyzes the equations of the model
-    def _analyze_eqns(self):
+    def _analyze_eqns(
+        self,
+    ) -> tuple[
+        list[tuple[list[str], list[str], dict[str, str], dict[str, tuple[str, int]]]],
+        dict[str, str],
+        dict[str, tuple[str, int]],
+    ]:
         if self._some_error:
             return None, None
 
         print("\t* Analyzing equation strings")
 
-        eqns_analyzed = []
+        eqns_analyzed: list[
+            tuple[list[str], list[str], dict[str, str], dict[str, tuple[str, int]]]
+        ] = []
+        var_mapping: dict[str, str] = {}
+        lag_mapping: dict[str, tuple[str, int]] = {}
 
-        var_mapping, lag_mapping = {}, {}
         for eqn in self._eqns:
             eqn_analyzed = (eqn, *self._analyze_eqn(eqn))
             eqns_analyzed += (eqn_analyzed,)
@@ -225,11 +239,16 @@ class ModelSolver:
 
     # Takes an equation string and parses it into coefficients (special care is taken to deal with scientific notation), variables, lags and operators/brackets
     # I've written my own parser in stead of using some existing because it needs to take care of then (-)-notation for lags
-    def _analyze_eqn(self, eqn: str):
+    def _analyze_eqn(
+        self, eqn: str
+    ) -> tuple[list[str], dict[str, str], dict[str, tuple[str, int]]]:
         if self._some_error:
             return
 
-        parsed_eqn_with_lag_notation, var_mapping, lag_mapping = [], {}, {}
+        parsed_eqn_with_lag_notation: list[str] = []
+        var_mapping: dict[str, str] = {}
+        lag_mapping: dict[str, tuple[str, int]] = {}
+
         component, lag = "", ""
         is_num, is_var, is_lag, is_sci = False, False, False, False
 
@@ -290,12 +309,18 @@ class ModelSolver:
                 lag = "".join([lag, chr_])
                 if chr_ == ")":
                     is_lag = False
-
         return parsed_eqn_with_lag_notation, var_mapping, lag_mapping
 
     # Performs block analysis of equations subject to endogenous variables
     # Analysis is a sequence of operations using graph theory
-    def _block_analyze_model(self):
+    def _block_analyze_model(
+        self,
+    ) -> tuple[
+        dict[str | int, int | str],
+        nx.DiGraph,
+        nx.DiGraph,
+        dict[str | int, tuple[str, ...]],
+    ]:
         # Using graph theory to analyze equations using existing algorithms to establish minimum simultaneous blocks
         eqns_endo_vars_bigraph = self._gen_eqns_endo_vars_bigraph()
         eqns_endo_vars_match = self._find_max_bipartite_match(eqns_endo_vars_bigraph)
@@ -316,7 +341,6 @@ class ModelSolver:
             **condenced_model_node_varlist_mapping,
             **augmented_condenced_model_node_varlist_mapping,
         }
-
         return (
             eqns_endo_vars_match,
             condenced_model_digraph,
@@ -326,7 +350,7 @@ class ModelSolver:
 
     # Generates bipartite graph (bigraph) connetcting equations (nodes in U) with endogenous variables (nodes in V)
     # See https://en.wikipedia.org/wiki/Bipartite_graph for a discussion of bigraphs
-    def _gen_eqns_endo_vars_bigraph(self):
+    def _gen_eqns_endo_vars_bigraph(self) -> nx.Graph:
         if self._some_error:
             return
 
@@ -351,7 +375,9 @@ class ModelSolver:
     # Finds a maximum bipartite match (MBM) of bigraph connetcting equations (nodes in U) with endogenous variables (nodes in V)
     # See https://www.geeksforgeeks.org/maximum-bipartite-matching/ for more on MBM
     # Returns dict with matches (maps both ways, i.e. U-->V and U-->U)
-    def _find_max_bipartite_match(self, eqns_endo_vars_bigraph):
+    def _find_max_bipartite_match(
+        self, eqns_endo_vars_bigraph: nx.Graph
+    ) -> dict[str | int, int | str]:
         if self._some_error:
             return
 
@@ -361,8 +387,10 @@ class ModelSolver:
 
         # Use maximum bipartite matching to make a one to one mapping between equations and endogenous variables
         try:
-            maximum_bipartite_match = nx.bipartite.maximum_matching(
-                eqns_endo_vars_bigraph, [i for i, _ in enumerate(self._eqns)]
+            maximum_bipartite_match: dict[str | int, int | str] = (
+                nx.bipartite.maximum_matching(
+                    eqns_endo_vars_bigraph, [i for i, _ in enumerate(self._eqns)]
+                )
             )
             if len(maximum_bipartite_match) / 2 < len(self.eqns):
                 self._some_error = True
@@ -375,7 +403,11 @@ class ModelSolver:
 
     # Makes a directed graph (digraph) showing how endogenous variables affect every other endogenous variable
     # See https://en.wikipedia.org/wiki/Directed_graph for more about directed graphs
-    def _gen_model_digraph(self, eqns_endo_vars_bigraph, eqns_endo_vars_match):
+    def _gen_model_digraph(
+        self,
+        eqns_endo_vars_bigraph: nx.Graph,
+        eqns_endo_vars_match: dict[str | int, int | str],
+    ) -> nx.DiGraph:
         if self._some_error:
             return
 
@@ -397,7 +429,9 @@ class ModelSolver:
     # Makes a condencation of digraph of endogenous variables
     # Each node of condencation contains strongly connected components; this corresponds to the simulataneous model blocks
     # See https://en.wikipedia.org/wiki/Strongly_connected_component for more about strongly connected components
-    def _gen_condenced_model_digraph(self, model_digraph):
+    def _gen_condenced_model_digraph(
+        self, model_digraph: nx.DiGraph
+    ) -> tuple[nx.DiGraph, dict[int, tuple[str, ...]]]:
         if self._some_error:
             return
 
@@ -419,8 +453,10 @@ class ModelSolver:
 
     # Augments condenced digraph with nodes and edges for exogenous variables in order to show what exogenous variables affect what strong components
     def _gen_augmented_condenced_model_digraph(
-        self, condenced_model_digraph, eqns_endo_vars_match
-    ):
+        self,
+        condenced_model_digraph: nx.DiGraph,
+        eqns_endo_vars_match: dict[str | int, int | str],
+    ) -> tuple[nx.DiGraph, dict[str, tuple[str, ...]]]:
         if self._some_error:
             return
 
@@ -449,7 +485,22 @@ class ModelSolver:
     # Generates simulation code and blocks
     # Simulation code contains a tuple of tuples for each strong component
     # The tuple for each strong component contains objective function, and Jacobian matrix, and lists of the variables in the strong component
-    def _gen_sim_code_and_blocks(self):
+    def _gen_sim_code_and_blocks(
+        self,
+    ) -> tuple[
+        dict[
+            int,
+            tuple[
+                Callable[..., NDArray[Any]] | None,
+                Callable[..., NDArray[Any]] | None,
+                Callable[..., NDArray[Any]] | None,
+                tuple[str, ...],
+                tuple[str, ...],
+                tuple[list[str]],
+            ],
+        ],
+        dict[int, tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...], bool]],
+    ]:
         if self._some_error:
             return
 
@@ -508,8 +559,14 @@ class ModelSolver:
     # Generates symbolic objective functon and Jacobian matrix for a given strong component
     @staticmethod
     def _gen_def_or_obj_fun_and_jac(
-        eqns: tuple[str], endo_vars: tuple[str], pred_vars: tuple[str]
-    ):
+        eqns: tuple[str, ...],
+        endo_vars: tuple[str, ...],
+        pred_vars: tuple[str, ...],
+    ) -> tuple[
+        Callable[..., NDArray[Any]] | None,
+        Callable[[list, ...], NDArray[Any]] | None,
+        Callable[[list, ...], NDArray[Any]] | None,
+    ]:
         max, min = Max, Max
         endo_sym, pred_sym, obj_fun = [], [], []
         for endo_var in endo_vars:
@@ -1396,7 +1453,8 @@ class ModelSolver:
                         "=".join([x, str(y)])
                         for x, y in zip(
                             [self._var_mapping.get(x) for x in block[0]],
-                            block_endo_vals, strict=True,
+                            block_endo_vals,
+                            strict=True,
                         )
                     ],
                     sep="\n",
@@ -1409,7 +1467,8 @@ class ModelSolver:
                         "=".join([x, str(y)])
                         for x, y in zip(
                             [self._var_mapping.get(x) for x in block[1]],
-                            block_pred_vals, strict=True,
+                            block_pred_vals,
+                            strict=True,
                         )
                     ],
                     sep="\n",
@@ -1431,18 +1490,18 @@ class ModelSolver:
 
     # Function that returns function that returns names, columns and lags for variables
     def gen_get_var_info(self, var_col_index):
-        def get_var_info(vars):
-            if not vars:
-                return (tuple([]), np.array([], dtype=int), np.array([], dtype=int))
+        def get_var_info(vars_):
+            if not vars_:
+                return (), np.array([], dtype=int), np.array([], dtype=int)
             # Stole zip-solution from: https://stackoverflow.com/questions/21444338/transpose-nested-list-in-python
             names, lags = tuple(
-                map(list, zip(*[self._lag_mapping.get(x) for x in vars], strict=True))
+                map(list, zip(*[self._lag_mapping.get(x) for x in vars_], strict=True))
             )
             cols = tuple(var_col_index.get(x) for x in names)
             if any(x is None for x in cols):
                 missing = [x for x, y in zip(names, cols, strict=True) if y is None]
                 raise KeyError(f'{",".join(missing)} is not in DataFrame')
-            return (names, np.array(lags, dtype=int), np.array(cols, dtype=int))
+            return names, np.array(lags, dtype=int), np.array(cols, dtype=int)
 
         return get_var_info
 
