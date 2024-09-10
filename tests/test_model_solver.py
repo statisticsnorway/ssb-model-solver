@@ -25,8 +25,16 @@ def endogenous():
     return ["x1", "x2", "ca", "cb", "k1", "k2"]
 
 @pytest.fixture
-def sensitivity_params():
+def sensitivity_params_std():
     return [1, 1, 'std']
+
+@pytest.fixture
+def sensitivity_params_pct():
+    return [1, 1, 'pct']
+
+@pytest.fixture
+def sensitivity_params_one():
+    return [1, 1, 'one']
 
 
 @pytest.fixture
@@ -139,13 +147,22 @@ def test_show_block_vals(equations, endogenous, input_data):
     pd.testing.assert_series_equal(pred_vals, expected_pred_vals, rtol=TOLERANCE)
 
 
-def test_sensitivity(equations, endogenous, input_data, sensitivity_params):
+def test_sensitivity(equations, endogenous, input_data, sensitivity_params_std, sensitivity_params_pct, sensitivity_params_one):
     model = ms.ModelSolver(equations, endogenous)
     model.solve_model(input_data)
-    # Unpacks fixture
-    df = model.sensitivity(*sensitivity_params)
     
-    assert df.empty is False
-    # k2 will be in the block analysed with current equation set
-    assert 'k2' in df.columns
-    assert np.allclose(4.732277, df['k2'].sum(), atol=0.00001)
+    # Unpacks fixtures for std, pct and ones, then does analysis
+    sens_std = model.sensitivity(*sensitivity_params_std)
+    sens_pct = model.sensitivity(*sensitivity_params_pct)
+    sens_one = model.sensitivity(*sensitivity_params_one)
+    
+    # Checks for results
+    assert sens_std.empty is False
+    assert sens_pct.empty is False
+    assert sens_one.empty is False
+
+    # k2 will be in the block analysed with current equation set 
+    assert 'k2' in sens_std.columns
+    assert np.allclose(4.732277, sens_std['k2'].sum(), atol=0.00001)
+    
+    
