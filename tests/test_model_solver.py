@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import pytest
 
 import model_solver as ms
@@ -22,6 +23,10 @@ def equations():
 @pytest.fixture
 def endogenous():
     return ["x1", "x2", "ca", "cb", "k1", "k2"]
+
+@pytest.fixture
+def sensitivity_params():
+    return [1, 1, 'std']
 
 
 @pytest.fixture
@@ -134,7 +139,13 @@ def test_show_block_vals(equations, endogenous, input_data):
     pd.testing.assert_series_equal(pred_vals, expected_pred_vals, rtol=TOLERANCE)
 
 
-def test_sensitivity(equations, endogenous, input_data):
+def test_sensitivity(equations, endogenous, input_data, sensitivity_params):
     model = ms.ModelSolver(equations, endogenous)
     model.solve_model(input_data)
-    # df = model.sensitivity(1, 3, method='pct', exog_subset=['exog_var1', 'exog_var2'])
+    # Unpacks fixture
+    df = model.sensitivity(*sensitivity_params)
+    
+    assert df.empty is False
+    # k2 will be in the block analysed with current equation set
+    assert 'k2' in df.columns
+    assert np.allclose(4.732277, df['k2'].sum(), atol=0.00001)
