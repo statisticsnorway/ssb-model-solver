@@ -6,6 +6,9 @@
 
 from collections import Counter
 from collections.abc import Callable
+from collections.abc import Generator
+from collections.abc import Iterable
+from collections.abc import Sequence
 from functools import cache
 from typing import Any
 
@@ -15,9 +18,10 @@ import numpy as np
 import pandas as pd
 from numba import njit
 from numpy.typing import NDArray
+from symengine import Add
 from symengine import Lambdify
 from symengine import Matrix
-from symengine import Max
+from symengine import Symbol
 from symengine import var
 
 
@@ -105,7 +109,6 @@ class ModelSolver:
 
     # Reads in equations and endogenous variables and does a number of operations, e.g. analyzing block structure using graph theory.
     def __init__(self, eqns: list[str], endo_vars: list[str]) -> None:
-        self._some_error = False
         self._lag_notation = "__LAG"
         self._max_lag = 0
         self._root_tolerance = 1e-7
@@ -194,16 +197,13 @@ class ModelSolver:
     ) -> tuple[tuple[str, ...], tuple[str, ...]]:
         print("* Importing equations")
         if any(x.strip() == "" for x in eqns):
-            self._some_error = True
             raise ValueError("there are empty elements in equation list")
 
         print("* Importing endogenous variables")
         if any(x.strip() == "" for x in endo_vars):
-            self._some_error = True
             raise ValueError("there are empty elements in endogenous variable list")
 
         if len(eqns) != len(endo_vars):
-            self._some_error = True
             raise ValueError(
                 "there is a different number of equations and endogenous variables"
             )
@@ -214,17 +214,14 @@ class ModelSolver:
     def _analyze_eqns(
         self,
     ) -> tuple[
-        list[tuple[list[str], list[str], dict[str, str], dict[str, tuple[str, int]]]],
+        list[tuple[str, list[str], dict[str, str], dict[str, tuple[str, int]]]],
         dict[str, str],
         dict[str, tuple[str, int]],
     ]:
-        if self._some_error:
-            return None, None
-
         print("\t* Analyzing equation strings")
 
         eqns_analyzed: list[
-            tuple[list[str], list[str], dict[str, str], dict[str, tuple[str, int]]]
+            tuple[str, list[str], dict[str, str], dict[str, tuple[str, int]]]
         ] = []
         var_mapping: dict[str, str] = {}
         lag_mapping: dict[str, tuple[str, int]] = {}
@@ -242,9 +239,6 @@ class ModelSolver:
     def _analyze_eqn(
         self, eqn: str
     ) -> tuple[list[str], dict[str, str], dict[str, tuple[str, int]]]:
-        if self._some_error:
-            return
-
         parsed_eqn_with_lag_notation: list[str] = []
         var_mapping: dict[str, str] = {}
         lag_mapping: dict[str, tuple[str, int]] = {}
@@ -337,7 +331,7 @@ class ModelSolver:
             condenced_model_digraph, eqns_endo_vars_match
         )
 
-        node_varlist_mapping = {
+        node_varlist_mapping = {  # type: ignore
             **condenced_model_node_varlist_mapping,
             **augmented_condenced_model_node_varlist_mapping,
         }
@@ -351,9 +345,6 @@ class ModelSolver:
     # Generates bipartite graph (bigraph) connetcting equations (nodes in U) with endogenous variables (nodes in V)
     # See https://en.wikipedia.org/wiki/Bipartite_graph for a discussion of bigraphs
     def _gen_eqns_endo_vars_bigraph(self) -> nx.Graph:
-        if self._some_error:
-            return
-
         print(
             "\t* Generating bipartite graph (BiGraph) connecting equations and endogenous variables"
         )
@@ -378,9 +369,6 @@ class ModelSolver:
     def _find_max_bipartite_match(
         self, eqns_endo_vars_bigraph: nx.Graph
     ) -> dict[str | int, int | str]:
-        if self._some_error:
-            return
-
         print(
             "\t* Finding maximum bipartite match (MBM) (i.e. associating every equation with exactly one endogenus variable)"
         )
@@ -393,10 +381,8 @@ class ModelSolver:
                 )
             )
             if len(maximum_bipartite_match) / 2 < len(self.eqns):
-                self._some_error = True
                 raise RuntimeError("model is over or under spesified")
         except nx.AmbiguousSolution as exc:
-            self._some_error = True
             raise RuntimeError("unable to analyze model") from exc
 
         return maximum_bipartite_match
@@ -408,9 +394,6 @@ class ModelSolver:
         eqns_endo_vars_bigraph: nx.Graph,
         eqns_endo_vars_match: dict[str | int, int | str],
     ) -> nx.DiGraph:
-        if self._some_error:
-            return
-
         print(
             "\t* Generating directed graph (DiGraph) connecting endogenous variables using bipartite graph and MBM"
         )
@@ -432,9 +415,6 @@ class ModelSolver:
     def _gen_condenced_model_digraph(
         self, model_digraph: nx.DiGraph
     ) -> tuple[nx.DiGraph, dict[int, tuple[str, ...]]]:
-        if self._some_error:
-            return
-
         print(
             "\t* Finding condensation of DiGraph (i.e. determining minimal blocks of systems of simulataneous equations)"
         )
@@ -448,7 +428,6 @@ class ModelSolver:
             node_vars_mapping[node] = tuple(
                 condenced_model_digraph.nodes[node]["members"]
             )
-
         return condenced_model_digraph, node_vars_mapping
 
     # Augments condenced digraph with nodes and edges for exogenous variables in order to show what exogenous variables affect what strong components
@@ -457,20 +436,19 @@ class ModelSolver:
         condenced_model_digraph: nx.DiGraph,
         eqns_endo_vars_match: dict[str | int, int | str],
     ) -> tuple[nx.DiGraph, dict[str, tuple[str, ...]]]:
-        if self._some_error:
-            return
-
         augmented_condenced_model_digraph = condenced_model_digraph.copy()
 
         # Make edges between exogenous variables and strong components it is a part of
         node_vars_mapping = {}
         for node in condenced_model_digraph.nodes():
             for member in condenced_model_digraph.nodes[node]["members"]:
+                index = eqns_endo_vars_match[member]
+                if not isinstance(index, int):
+                    raise TypeError("Index not of type int")
+
                 for exog_var_adjacent_to_node in [
                     val
-                    for key, val in self._eqns_analyzed[eqns_endo_vars_match[member]][
-                        2
-                    ].items()
+                    for key, val in self._eqns_analyzed[index][2].items()
                     if self._lag_notation not in val and key not in self.endo_vars
                 ]:
                     augmented_condenced_model_digraph.add_edge(
@@ -479,8 +457,7 @@ class ModelSolver:
                     node_vars_mapping[exog_var_adjacent_to_node] = (
                         exog_var_adjacent_to_node,
                     )
-
-        return augmented_condenced_model_digraph, node_vars_mapping
+        return augmented_condenced_model_digraph, node_vars_mapping  # type: ignore
 
     # Generates simulation code and blocks
     # Simulation code contains a tuple of tuples for each strong component
@@ -492,18 +469,15 @@ class ModelSolver:
             int,
             tuple[
                 Callable[..., NDArray[Any]] | None,
-                Callable[..., NDArray[Any]] | None,
-                Callable[..., NDArray[Any]] | None,
+                Callable[[Iterable[Any], Any], NDArray[Any]] | None,
+                Callable[[Iterable[Any], Any], NDArray[Any]] | None,
                 tuple[str, ...],
                 tuple[str, ...],
-                tuple[list[str]],
+                tuple[list[str], ...],
             ],
         ],
         dict[int, tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...], bool]],
     ]:
-        if self._some_error:
-            return
-
         print(
             "\t* Generating simulation code (i.e. block-wise symbolic objective function,",
             "symbolic Jacobian matrix and lists of endogenous and exogenous variables)",
@@ -513,19 +487,19 @@ class ModelSolver:
         for i, node in enumerate(
             reversed(tuple(self._condenced_model_digraph.nodes()))
         ):
-            block_endo_vars, block_eqns_orig, block_eqns_lags, block_pred_vars = (
-                tuple(),
-                tuple(),
-                tuple(),
-                set(),
-            )
+            block_endo_vars: tuple[str, ...] = ()
+            block_eqns_orig: tuple[str, ...] = ()
+            block_eqns_lags: tuple[list[str], ...] = ()
+            block_pred_vars_set: set[str] = set()
             for member in self._condenced_model_digraph.nodes[node]["members"]:
                 j = self._eqns_endo_vars_match[member]
+                if not isinstance(j, int):
+                    raise TypeError("Index j is not of type int")
                 eqns_analyzed = self._eqns_analyzed[j]
                 block_endo_vars += (member,)
                 block_eqns_orig += (eqns_analyzed[0],)
                 block_eqns_lags += (eqns_analyzed[1],)
-                block_pred_vars.update(
+                block_pred_vars_set.update(
                     [
                         val
                         for key, val in eqns_analyzed[2].items()
@@ -533,8 +507,8 @@ class ModelSolver:
                     ]
                 )
 
-            block_pred_vars.difference_update(set(block_endo_vars))
-            block_pred_vars = tuple(block_pred_vars)
+            block_pred_vars_set.difference_update(set(block_endo_vars))
+            block_pred_vars = tuple(block_pred_vars_set)
 
             (def_fun, obj_fun, jac) = self._gen_def_or_obj_fun_and_jac(
                 block_eqns_lags, block_endo_vars, block_pred_vars
@@ -559,16 +533,17 @@ class ModelSolver:
     # Generates symbolic objective functon and Jacobian matrix for a given strong component
     @staticmethod
     def _gen_def_or_obj_fun_and_jac(
-        eqns: tuple[str, ...],
+        eqns: tuple[list[str], ...],
         endo_vars: tuple[str, ...],
         pred_vars: tuple[str, ...],
     ) -> tuple[
         Callable[..., NDArray[Any]] | None,
-        Callable[[list, ...], NDArray[Any]] | None,
-        Callable[[list, ...], NDArray[Any]] | None,
+        Callable[[Iterable[Any], Any], NDArray[Any]] | None,
+        Callable[[Iterable[Any], Any], NDArray[Any]] | None,
     ]:
-        max, min = Max, Max
-        endo_sym, pred_sym, obj_fun = [], [], []
+        endo_sym: list[Symbol] = []
+        pred_sym: list[Symbol] = []
+        obj_fun: list[Add] = []
         for endo_var in endo_vars:
             var(endo_var)
             endo_sym += (eval(endo_var),)
@@ -621,7 +596,9 @@ class ModelSolver:
 
         return None, obj_fun_out, jac_out
 
-    def switch_endo_vars(self, old_endo_vars: list[str], new_endo_vars: list[str]):
+    def switch_endo_vars(
+        self, old_endo_vars: list[str], new_endo_vars: list[str]
+    ) -> None:
         """Sets old_endo_vars as exogenous and new_endo_vars as endogenous and performs block analysis.
 
         Parameters:
@@ -673,7 +650,7 @@ class ModelSolver:
 
         print("Finished")
 
-    def find_endo_var(self, endo_var: str, noisy=False):
+    def find_endo_var(self, endo_var: str, noisy: bool = False) -> int | None:
         """Find the block that solves the specified endogenous variable.
 
         Parameters
@@ -686,26 +663,27 @@ class ModelSolver:
 
         Returns:
         -------
-        str or None
-            The name of the block that solves the specified endogenous variable.
+        int or None
+            The block number of the block that solves the specified endogenous variable.
             Returns None if the endogenous variable is not found in any block.
 
         Notes:
         -----
         This function searches for the specified endogenous variable in the model's
-        blocks and returns the name of the block that solves it. If the endogenous
+        blocks and returns the block number of the block that solves it. If the endogenous
         variable is not found in any block, it returns None.
         """
         block = [key for key, val in self._blocks.items() if endo_var.lower() in val[0]]
         if block:
             if noisy:
                 print(block[0])
+                return None
             else:
                 return block[0]
         else:
             raise IndexError(f"{endo_var} is not endogenous in model")
 
-    def describe(self):
+    def describe(self) -> None:
         """Display a summary of the model's characteristics.
 
         Prints information about the model, including the number of equations, blocks,
@@ -728,7 +706,7 @@ class ModelSolver:
             print(f"{val} blocks have {key} equations")
         print("-" * 100)
 
-    def show_blocks(self):
+    def show_blocks(self) -> None:
         """Prints endogenous and exogenous variables and equations for every block in the model.
 
         Iterates through all blocks in the model and calls the `show_block` function to display their details.
@@ -793,7 +771,7 @@ class ModelSolver:
             print(" ".join(["-" * 50, "Block", str(key), "-" * 50]))
             self.show_block(key)
 
-    def show_block(self, i: int):
+    def show_block(self, i: int) -> None:
         """Prints endogenous and exogenous variables and equations for a given block.
 
         Parameters:
@@ -853,9 +831,7 @@ class ModelSolver:
                     [
                         " ".join(x)
                         for x in list(
-                            self._chunks(
-                                [self._var_mapping.get(x) for x in block[1]], 25
-                            )
+                            self._chunks([self._var_mapping[x] for x in block[1]], 25)
                         )
                     ]
                 )
@@ -865,7 +841,7 @@ class ModelSolver:
         else:
             raise IndexError(f"block {i} is not in model")
 
-    def solve_model(self, input_df: pd.DataFrame, jit=True) -> pd.DataFrame:
+    def solve_model(self, input_df: pd.DataFrame, jit: bool = True) -> pd.DataFrame:
         """Solves the model subject to a given DataFrame.
 
         Parameters:
@@ -893,11 +869,8 @@ class ModelSolver:
         >>> input_data = pd.DataFrame({'var1': [1.0, 2.0, 3.0], 'var2': [0.5, 1.0, 1.5]})
         >>> output_data = model.solve_model(input_data)
         """
-        if self._some_error:
-            return
-
         if (
-            all(np.issubdtype(input_df[x].dtype, np.number) for x in input_df.columns)
+            all(np.issubdtype(input_df[x].dtype, np.number) for x in input_df.columns)  # type: ignore
             is False
         ):
             raise TypeError("all columns in input_df must be numeric")
@@ -1135,9 +1108,6 @@ class ModelSolver:
 
         Draws a directed graph of the block containing 'var1' with up to 3 generations of ancestors and 2 generations of descendants.
         """
-        if self._some_error:
-            return
-
         var_node = self._find_var_node(var.lower())
 
         ancs_nodes = nx.ancestors(self._augmented_condenced_model_digraph, var_node)
@@ -1289,9 +1259,6 @@ class ModelSolver:
         exog_var3
         ...
         """
-        if self._some_error:
-            return
-
         if noisy:
             print(
                 "\n".join(
@@ -1489,10 +1456,16 @@ class ModelSolver:
             raise RuntimeError("no solution exists") from exc
 
     # Function that returns function that returns names, columns and lags for variables
-    def gen_get_var_info(self, var_col_index):
-        def get_var_info(vars_):
+    def gen_get_var_info(
+        self, var_col_index: dict[str, int]
+    ) -> Callable[
+        [Iterable[str]], tuple[list[str], NDArray[np.int64], NDArray[np.int64]]
+    ]:
+        def get_var_info(
+            vars_: Iterable[str],
+        ) -> tuple[list[str], NDArray[np.int64], NDArray[np.int64]]:
             if not vars_:
-                return (), np.array([], dtype=int), np.array([], dtype=int)
+                return [], np.array([], dtype=np.int64), np.array([], dtype=np.int64)
             # Stole zip-solution from: https://stackoverflow.com/questions/21444338/transpose-nested-list-in-python
             names, lags = tuple(
                 map(list, zip(*[self._lag_mapping.get(x) for x in vars_], strict=True))
@@ -1501,7 +1474,7 @@ class ModelSolver:
             if any(x is None for x in cols):
                 missing = [x for x, y in zip(names, cols, strict=True) if y is None]
                 raise KeyError(f'{",".join(missing)} is not in DataFrame')
-            return names, np.array(lags, dtype=int), np.array(cols, dtype=int)
+            return names, np.array(lags, dtype=np.int64), np.array(cols, dtype=np.int64)
 
         return get_var_info
 
@@ -1544,9 +1517,6 @@ class ModelSolver:
         exog_var2  |    0.45     |    0.56    |
         ...
         """
-        if self._some_error:
-            return
-
         try:
             var_col_index = {
                 var: i
@@ -1595,17 +1565,13 @@ class ModelSolver:
             solution_diff = self._last_solution.copy()
 
             if method == "std":
-                solution_diff.loc[solution_diff.index[period_index - lag], var] += (
-                    solution_diff[var].std()
-                )
+                solution_diff[var].iloc[period_index - lag] += solution_diff[var].std()
             elif method == "pct":
-                solution_diff.loc[solution_diff.index[period_index - lag], var] += (
-                    solution_diff.loc[solution_diff.index[period_index - lag], var]
-                    * 0.01
+                solution_diff[var].iloc[period_index - lag] += (
+                    solution_diff[var].iloc[period_index - lag] * 0.01
                 )
-
             elif method == "one":
-                solution_diff.loc[solution_diff.index[period_index - lag], var] += 1
+                solution_diff[var].iloc[period_index - lag] += 1
             else:
                 raise ValueError("method must be std, pct or one")
 
@@ -1640,6 +1606,6 @@ class ModelSolver:
 
     # Stole solution from https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
     @staticmethod
-    def _chunks(xs, n):
+    def _chunks(xs: Sequence[str], n: int) -> Generator[Sequence[str], None, None]:
         n = max(1, n)
         return (xs[i : i + n] for i in range(0, len(xs), n))
