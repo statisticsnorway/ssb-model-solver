@@ -120,7 +120,6 @@ def test_trace_to_exog_vars(equations: list[str], endogenous: list[str]) -> None
     exog_vars = model.trace_to_exog_vars(5, noisy=False)
     expected_exog_vars = ["i1", "i2", "a1", "a2"]
     assert exog_vars is not None
-    assert expected_exog_vars is not None
     assert sorted(exog_vars) == sorted(expected_exog_vars)
 
 
@@ -129,7 +128,7 @@ def test_trace_to_exog_vals(
     equations: list[str], endogenous: list[str], input_data: pd.DataFrame
 ) -> None:
     model = ms.ModelSolver(equations, endogenous)
-    solution = model.solve_model(input_data)
+    model.solve_model(input_data)
     exog_vals = model.trace_to_exog_vals(5, period_index=1, noisy=False)
     expected_exog_vals = pd.Series(
         {"i1": 2.0, "i2": 2.0, "a1": 2.0, "a2": 2.0}

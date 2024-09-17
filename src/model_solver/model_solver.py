@@ -107,6 +107,8 @@ class ModelSolver:
         the original solution.
     """
 
+    _NO_SOLUTION_TEXT = "No solution exist"
+
     # Reads in equations and endogenous variables and does a number of operations, e.g. analyzing block structure using graph theory.
     def __init__(self, eqns: list[str], endo_vars: list[str]) -> None:
         self._lag_notation = "__LAG"
@@ -164,7 +166,7 @@ class ModelSolver:
         try:
             return self._last_solution.iloc[self.max_lag :, :]
         except AttributeError as exc:
-            raise AttributeError("no solution exists") from exc
+            raise AttributeError(self._NO_SOLUTION_TEXT) from exc
 
     @property
     def root_tolerance(self) -> float:
@@ -553,18 +555,22 @@ class ModelSolver:
         for eqn in eqns:
             i = eqn.index("=")
             lhs, rhs = eqn[:i], eqn[i + 1 :]
+            rhs_str = "".join(rhs).strip().strip("+")
             if len(eqns) == 1 and endo_var == "".join(lhs) and endo_var not in rhs:
                 if len(pred_vars) == 0:
                     return (
-                        lambda _: np.array([eval("".join(rhs).strip().strip("+"))]),
+                        lambda _, rhs_str_=rhs_str: np.array([eval(rhs_str_)]),
                         None,
                         None,
                     )
-                def_fun = eval("".join(rhs).strip().strip("+"))
+                def_fun = eval(rhs_str)
                 def_fun_lam = Lambdify([pred_sym], def_fun)
-                def_fun_out = lambda args: np.array(
-                    [def_fun_lam(args)], dtype=np.float64
-                )
+
+                def def_fun_out(
+                    args: list[Symbol], def_fun_lam_=def_fun_lam
+                ) -> NDArray[np.float64]:
+                    return np.array([def_fun_lam_(args)], dtype=np.float64)
+
                 return def_fun_out, None, None
 
             if ("min(" in lhs) or ("min(" in rhs):
@@ -591,8 +597,11 @@ class ModelSolver:
         obj_fun_lam = Lambdify([*endo_sym, *pred_sym], obj_fun, cse=True)
         jac_lam = Lambdify([*endo_sym, *pred_sym], jac, cse=True)
 
-        obj_fun_out = lambda val_list, *args: obj_fun_lam(*val_list, *args)
-        jac_out = lambda val_list, *args: jac_lam(*val_list, *args)
+        def obj_fun_out(val_list, *args):
+            return obj_fun_lam(*val_list, *args)
+
+        def jac_out(val_list, *args):
+            return jac_lam(*val_list, *args)
 
         return None, obj_fun_out, jac_out
 
@@ -1399,7 +1408,7 @@ class ModelSolver:
             return None
 
         except AttributeError as exc:
-            raise RuntimeError("no solution exists") from exc
+            raise RuntimeError(self._NO_SOLUTION_TEXT) from exc
 
     def show_block_vals(
         self, i: int, period_index: int, noisy: bool = True
@@ -1501,7 +1510,7 @@ class ModelSolver:
                 )
 
         except AttributeError as exc:
-            raise RuntimeError("no solution exists") from exc
+            raise RuntimeError(self._NO_SOLUTION_TEXT) from exc
 
     # Function that returns function that returns names, columns and lags for variables
     def gen_get_var_info(
@@ -1579,7 +1588,7 @@ class ModelSolver:
                 )
             }
         except AttributeError as exc:
-            raise AttributeError("no solution exists") from exc
+            raise AttributeError(self._NO_SOLUTION_TEXT) from exc
 
         get_var_info = cache(self.gen_get_var_info(var_col_index))
 
