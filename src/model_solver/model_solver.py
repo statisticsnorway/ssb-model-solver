@@ -111,6 +111,12 @@ class ModelSolver:
 
     # Reads in equations and endogenous variables and does a number of operations, e.g. analyzing block structure using graph theory.
     def __init__(self, eqns: list[str], endo_vars: list[str]) -> None:
+        """Reads in equations and endogenous variables and does a number of operations, e.g. analyzing block structure using graph theory.
+
+        Args:
+            eqns: A list of equations in string format
+            endo_vars: A list of endogenous variables
+        """
         self._lag_notation = "__LAG"
         self._max_lag = 0
         self._root_tolerance = 1e-7
@@ -143,14 +149,17 @@ class ModelSolver:
 
     @property
     def eqns(self) -> tuple[str, ...]:
+        """Return the equations in the model."""
         return self._eqns
 
     @property
     def endo_vars(self) -> tuple[str, ...]:
+        """Return the endogenous variables in the model."""
         return self._endo_vars
 
     @property
     def exog_vars(self) -> tuple[str, ...]:
+        """Return the exogenous variables in the model."""
         vars_: set[str] = set()
         for _, _, _, lag_mapping in self._eqns_analyzed:
             for _, val in lag_mapping.items():
@@ -159,10 +168,19 @@ class ModelSolver:
 
     @property
     def max_lag(self) -> int:
+        """Return max_lag in the model."""
         return self._max_lag
 
     @property
     def last_solution(self) -> pd.DataFrame:
+        """Returns the last found solution in the model.
+
+        Returns:
+            The last found solution as a dataframe.
+
+        Raises:
+            AttributeError: If no solution is found.
+        """
         try:
             return self._last_solution.iloc[self.max_lag :, :]
         except AttributeError as exc:
@@ -170,6 +188,7 @@ class ModelSolver:
 
     @property
     def root_tolerance(self) -> float:
+        """Return root tolerance."""
         return self._root_tolerance
 
     @root_tolerance.setter
@@ -182,6 +201,7 @@ class ModelSolver:
 
     @property
     def max_iter(self) -> int:
+        """Return maximum number of iterations."""
         return self._max_iter
 
     @max_iter.setter
@@ -567,7 +587,8 @@ class ModelSolver:
                 def_fun_lam = Lambdify([pred_sym], def_fun)
 
                 def def_fun_out(
-                    args: list[Symbol], def_fun_lam_=def_fun_lam
+                    args: list[Symbol],
+                    def_fun_lam_: Callable[[list[Symbol]], Any] = def_fun_lam,
                 ) -> NDArray[np.float64]:
                     return np.array([def_fun_lam_(args)], dtype=np.float64)
 
@@ -597,10 +618,10 @@ class ModelSolver:
         obj_fun_lam = Lambdify([*endo_sym, *pred_sym], obj_fun, cse=True)
         jac_lam = Lambdify([*endo_sym, *pred_sym], jac, cse=True)
 
-        def obj_fun_out(val_list, *args):
+        def obj_fun_out(val_list, *args):  # type: ignore # noqa
             return obj_fun_lam(*val_list, *args)
 
-        def jac_out(val_list, *args):
+        def jac_out(val_list, *args):  # type: ignore # noqa
             return jac_lam(*val_list, *args)
 
         return None, obj_fun_out, jac_out
@@ -956,14 +977,14 @@ class ModelSolver:
     # Solves one block of the model for a given time period
     def _solve_block(  # type: ignore
         self,
-        def_fun,
-        obj_fun,
-        jac,
-        endo_vars_info,
-        pred_vars_info,
-        output_array,
-        period,
-        jit,
+        def_fun,  # noqa: ANN001
+        obj_fun,  # noqa: ANN001
+        jac,  # noqa: ANN001
+        endo_vars_info,  # noqa: ANN001
+        pred_vars_info,  # noqa: ANN001
+        output_array,  # noqa: ANN001
+        period,  # noqa: ANN001
+        jit,  # noqa: ANN001
     ):
         (
             _,
@@ -1512,12 +1533,13 @@ class ModelSolver:
         except AttributeError as exc:
             raise RuntimeError(self._NO_SOLUTION_TEXT) from exc
 
-    # Function that returns function that returns names, columns and lags for variables
     def gen_get_var_info(
         self, var_col_index: dict[str, int]
     ) -> Callable[
         [Iterable[str]], tuple[list[str], NDArray[np.int64], NDArray[np.int64]]
     ]:
+        """Function that returns function that returns names, columns and lags for variables."""
+
         def get_var_info(
             vars_: Iterable[str],
         ) -> tuple[list[str], NDArray[np.int64], NDArray[np.int64]]:
