@@ -1,5 +1,5 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pytest
 
 import model_solver as ms
@@ -9,7 +9,7 @@ TOLERANCE = 1e-6  # Small tolerance for floating-point comparisons
 
 # Fixtures for test data
 @pytest.fixture
-def equations():
+def equations() -> list[str]:
     return [
         "x1 = a1",
         "x2 = a2",
@@ -21,24 +21,27 @@ def equations():
 
 
 @pytest.fixture
-def endogenous():
+def endogenous() -> list[str]:
     return ["x1", "x2", "ca", "cb", "k1", "k2"]
 
-@pytest.fixture
-def sensitivity_params_std():
-    return [1, 1, 'std']
 
 @pytest.fixture
-def sensitivity_params_pct():
-    return [1, 1, 'pct']
-
-@pytest.fixture
-def sensitivity_params_one():
-    return [1, 1, 'one']
+def sensitivity_params_std() -> tuple[int, int, str]:
+    return 1, 1, "std"
 
 
 @pytest.fixture
-def input_data():
+def sensitivity_params_pct() -> tuple[int, int, str]:
+    return 1, 1, "pct"
+
+
+@pytest.fixture
+def sensitivity_params_one() -> tuple[int, int, str]:
+    return 1, 1, "one"
+
+
+@pytest.fixture
+def input_data() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "x1": [2, 4, 1, 2],
@@ -57,14 +60,14 @@ def input_data():
 
 
 # Test for model initialization
-def test_model_initialization(equations, endogenous):
+def test_model_initialization(equations: list[str], endogenous: list[str]) -> None:
     model = ms.ModelSolver(equations, endogenous)
     assert model.eqns == tuple([eq.lower() for eq in equations])
     assert model.endo_vars == tuple([var.lower() for var in endogenous])
 
 
 # Test for block identification
-def test_show_blocks(equations, endogenous):
+def test_show_blocks(equations: list[str], endogenous: list[str]) -> None:
     model = ms.ModelSolver(equations, endogenous)
     model.show_blocks()
     # Assuming the blocks are stored in an internal structure
@@ -72,7 +75,9 @@ def test_show_blocks(equations, endogenous):
 
 
 # Test solving the model
-def test_solve_model(equations, endogenous, input_data):
+def test_solve_model(
+    equations: list[str], endogenous: list[str], input_data: pd.DataFrame
+) -> None:
     model = ms.ModelSolver(equations, endogenous)
     model.describe()
     model.show_blocks()
@@ -101,7 +106,7 @@ def test_solve_model(equations, endogenous, input_data):
 
 
 # Test switching endogenous variables
-def test_switch_endo_vars(equations, endogenous):
+def test_switch_endo_vars(equations: list[str], endogenous: list[str]) -> None:
     model = ms.ModelSolver(equations, endogenous)
     model.switch_endo_vars(["x2"], ["a2"])
     assert "x2" not in model.endo_vars
@@ -110,31 +115,40 @@ def test_switch_endo_vars(equations, endogenous):
 
 
 # Test tracing to exogenous variables
-def test_trace_to_exog_vars(equations, endogenous):
+def test_trace_to_exog_vars(equations: list[str], endogenous: list[str]) -> None:
     model = ms.ModelSolver(equations, endogenous)
     exog_vars = model.trace_to_exog_vars(5, noisy=False)
     expected_exog_vars = ["i1", "i2", "a1", "a2"]
+    assert exog_vars is not None
+    assert expected_exog_vars is not None
     assert sorted(exog_vars) == sorted(expected_exog_vars)
 
 
 # Test tracing to exogenous values
-def test_trace_to_exog_vals(equations, endogenous, input_data):
+def test_trace_to_exog_vals(
+    equations: list[str], endogenous: list[str], input_data: pd.DataFrame
+) -> None:
     model = ms.ModelSolver(equations, endogenous)
     solution = model.solve_model(input_data)
     exog_vals = model.trace_to_exog_vals(5, period_index=1, noisy=False)
     expected_exog_vals = pd.Series(
         {"i1": 2.0, "i2": 2.0, "a1": 2.0, "a2": 2.0}
     ).sort_index()
+    assert exog_vals is not None
     exog_vals = exog_vals.sort_index()  # Sort before comparison
 
     pd.testing.assert_series_equal(exog_vals, expected_exog_vals, rtol=TOLERANCE)
 
 
 # Test showing block values
-def test_show_block_vals(equations, endogenous, input_data):
+def test_show_block_vals(
+    equations: list[str], endogenous: list[str], input_data: pd.DataFrame
+) -> None:
     model = ms.ModelSolver(equations, endogenous)
     model.solve_model(input_data)
     endo_vals, pred_vals = model.show_block_vals(5, 1, noisy=False)
+    assert endo_vals is not None
+    assert pred_vals is not None
 
     # Ensure that the endo_vals and pred_vals match expected results from the notebook
     expected_endo_vals = pd.Series({"ca": 1.942857, "cb": 1.257143})
@@ -147,22 +161,27 @@ def test_show_block_vals(equations, endogenous, input_data):
     pd.testing.assert_series_equal(pred_vals, expected_pred_vals, rtol=TOLERANCE)
 
 
-def test_sensitivity(equations, endogenous, input_data, sensitivity_params_std, sensitivity_params_pct, sensitivity_params_one):
+def test_sensitivity(
+    equations: list[str],
+    endogenous: list[str],
+    input_data: pd.DataFrame,
+    sensitivity_params_std: tuple[int, int, str],
+    sensitivity_params_pct: tuple[int, int, str],
+    sensitivity_params_one: tuple[int, int, str],
+) -> None:
     model = ms.ModelSolver(equations, endogenous)
     model.solve_model(input_data)
-    
+
     # Unpacks fixtures for std, pct and ones, then does analysis
     sens_std = model.sensitivity(*sensitivity_params_std)
     sens_pct = model.sensitivity(*sensitivity_params_pct)
     sens_one = model.sensitivity(*sensitivity_params_one)
-    
+
     # Checks for results
     assert sens_std.empty is False
     assert sens_pct.empty is False
     assert sens_one.empty is False
 
-    # k2 will be in the block analysed with current equation set 
-    assert 'k2' in sens_std.columns
-    assert np.allclose(4.732277, sens_std['k2'].sum(), atol=0.00001)
-    
-    
+    # k2 will be in the block analysed with current equation set
+    assert "k2" in sens_std.columns
+    assert np.allclose(4.732277, sens_std["k2"].sum(), atol=0.00001)

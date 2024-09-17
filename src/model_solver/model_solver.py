@@ -1403,7 +1403,7 @@ class ModelSolver:
 
     def show_block_vals(
         self, i: int, period_index: int, noisy: bool = True
-    ) -> tuple[pd.Series, pd.Series] | None:
+    ) -> tuple[pd.Series, pd.Series] | tuple[None, None]:
         """Prints the values of endogenous and predetermined variables in a given block for a specific period.
 
         Parameters:
@@ -1487,7 +1487,7 @@ class ModelSolver:
                     ],
                     sep="\n",
                 )
-                return None
+                return None, None
             else:
                 return (
                     pd.Series(
