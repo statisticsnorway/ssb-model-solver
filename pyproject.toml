@@ -45,6 +45,7 @@ typeguard = ">=2.13.3"
 xdoctest = { extras = ["colors"], version = ">=0.15.10" }
 myst-parser = { version = ">=0.16.1" }
 pandas-stubs = ">=2.2.2.240807"
+ipykernel = ">=6.29.5"
 
 [tool.poetry.scripts]
 ssb-model-solver = "model_solver.__main__:main"
@@ -146,6 +147,11 @@ classmethod-decorators = ["classmethod", "validator", "root_validator", "pydanti
     "D103",
     "S101",    # asserts are encouraged in pytest
 ]
+
+[tool.jupytext]
+formats = "ipynb,auto:percent"
+notebook_metadata_filter = "jupytext.text_representation,-jupytext.text_representation.jupytext_version,-widgets,-varInspector"
+cell_metadata_filter = "-papermill,tags"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
