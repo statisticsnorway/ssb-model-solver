@@ -895,13 +895,13 @@ class ModelSolver:
         print("".join(["\t|", " " * (last_period - first_period + 1), "|"]))
         print("\t ", end="")
 
-        warnings = []
+        warnings: list[str] = []
 
         for period in periods:
             print(".", end="")
             for key, val in self._sim_code.items():
                 def_fun, obj_fun, jac, endo_vars, pred_vars, _ = val
-                solution = self._solve_block(
+                solution = self._solve_block(  # type: ignore
                     def_fun,
                     obj_fun,
                     jac,
@@ -945,7 +945,7 @@ class ModelSolver:
         return output_df.iloc[self.max_lag :, :]
 
     # Solves one block of the model for a given time period
-    def _solve_block(
+    def _solve_block(  # type: ignore
         self,
         def_fun,
         obj_fun,
@@ -998,14 +998,21 @@ class ModelSolver:
                 tol=self._root_tolerance,
                 maxiter=self.max_iter,
             )
-            if all(np.isfinite(solution.get("x"))) is False:
+            if all(np.isfinite(solution.get("x"))) is False:  # type: ignore
                 solution["status"] = 2
 
         return solution
 
     # Gets values from DataFrame via array view for speed
     # If shape of request > 0 then the request is sent to njit'ed method for speed
-    def _get_vals(self, array, cols, lags, period, jit):
+    def _get_vals(
+        self,
+        array: NDArray[np.float64],
+        cols: NDArray[np.int64],
+        lags: NDArray[np.int64],
+        period: int,
+        jit: bool,
+    ) -> NDArray[np.float64]:
         if cols.shape[0] == 0:
             return np.array([], np.float64)
 
@@ -1013,7 +1020,7 @@ class ModelSolver:
             raise IndexError("period is out of range")
         else:
             if jit:
-                return self._get_vals_jit(array, cols, lags, period)
+                return self._get_vals_jit(array, cols, lags, period)  # type: ignore
             else:
                 return self._get_vals_nojit(array, cols, lags, period)
 
@@ -1021,8 +1028,13 @@ class ModelSolver:
     # Some weird stuff had to be implemented for njit to stop complaining
     # Not sure if njit increases efficiency
     @staticmethod
-    @njit
-    def _get_vals_jit(array: np.array, cols: np.array, lags: np.array, period: int):
+    @njit  # type: ignore
+    def _get_vals_jit(
+        array: NDArray[np.float64],
+        cols: NDArray[np.int64],
+        lags: NDArray[np.int64],
+        period: int,
+    ) -> NDArray[np.float64]:
         vals = np.array([0.0], dtype=np.float64)
         for col, lag in zip(cols, lags):  # noqa: B905
             vals = np.append(vals, array[period - lag, col])
@@ -1031,7 +1043,12 @@ class ModelSolver:
     # Gets values from DataFrame via array view
     # Runs if user sets jit to False
     @staticmethod
-    def _get_vals_nojit(array: np.array, cols: np.array, lags: np.array, period: int):
+    def _get_vals_nojit(
+        array: NDArray[np.float64],
+        cols: NDArray[np.int64],
+        lags: NDArray[np.int64],
+        period: int,
+    ) -> NDArray[np.float64]:
         vals = np.array([], dtype=np.float64)
         for col, lag in zip(cols, lags):  # noqa: B905
             vals = np.append(vals, array[period - lag, col])
@@ -1039,7 +1056,14 @@ class ModelSolver:
 
     # Solves root finding problem using simple Newton-Raphson method
     @staticmethod
-    def _newton_raphson(f, init, args=None, jac=None, tol=None, maxiter=None):
+    def _newton_raphson(
+        f: Callable[[Iterable[Any], Any], NDArray[Any]],
+        init: NDArray[np.float64],
+        args: tuple[NDArray[np.float64]],
+        jac: Callable[[Iterable[Any], Any], NDArray[Any]],
+        tol: float,
+        maxiter: int,
+    ) -> dict[str, NDArray[np.float64] | bool | int]:
         success = True
         status = 0
         x_i = init
@@ -1072,12 +1096,12 @@ class ModelSolver:
 
     def draw_blockwise_graph(
         self,
-        var: str,
+        var_: str,
         max_ancs_gens: int = 5,
         max_desc_gens: int = 5,
         max_nodes: int = 50,
-        figsize=(7.5, 7.5),
-    ):
+        figsize: tuple[float, float] = (7.5, 7.5),
+    ) -> None:
         """Draws a directed graph of a block containing the given variable with a limited number of ancestors and descendants.
 
         Parameters:
@@ -1108,7 +1132,7 @@ class ModelSolver:
 
         Draws a directed graph of the block containing 'var1' with up to 3 generations of ancestors and 2 generations of descendants.
         """
-        var_node = self._find_var_node(var.lower())
+        var_node = self._find_var_node(var_.lower())
 
         ancs_nodes = nx.ancestors(self._augmented_condenced_model_digraph, var_node)
         desc_nodes = nx.descendants(self._augmented_condenced_model_digraph, var_node)
@@ -1138,7 +1162,7 @@ class ModelSolver:
         print(
             " ".join(
                 [
-                    f"Graph of block containing {var} with <={max_ancs_gens} generations of ancestors and <={max_desc_gens} generations of decendants:",
+                    f"Graph of block containing {var_} with <={max_ancs_gens} generations of ancestors and <={max_desc_gens} generations of decendants:",
                     str(subgraph),
                 ]
             )
@@ -1217,24 +1241,37 @@ class ModelSolver:
         plt.plot()
 
     # Returns the node in  which var is endogenous
-    def _find_var_node(self, var):
+    def _find_var_node(self, var_: str) -> int:
         if any(
             [
-                var in self._condenced_model_digraph.nodes[x]["members"]
+                var_ in self._condenced_model_digraph.nodes[x]["members"]
                 for x in self._condenced_model_digraph.nodes()
             ]
         ):
             var_node = [
-                var in self._condenced_model_digraph.nodes[x]["members"]
+                var_ in self._condenced_model_digraph.nodes[x]["members"]
                 for x in self._condenced_model_digraph.nodes()
             ].index(True)
-        elif var in self._augmented_condenced_model_digraph.nodes():
-            var_node = var
+        # TODO: Check the old code commented out below. It must be wrong, returning
+        # an integer below and a string above. Nodes are integers and comparing
+        # with a string does not make sense.
+        # elif var_ in self._augmented_condenced_model_digraph.nodes():
+        #     var_node = var_
+        elif any(
+            [
+                var_ in self._augmented_condenced_model_digraph.nodes[x]["members"]
+                for x in self._augmented_condenced_model_digraph.nodes()
+            ]
+        ):
+            var_node = [
+                var_ in self._augmented_condenced_model_digraph.nodes[x]["members"]
+                for x in self._augmented_condenced_model_digraph.nodes()
+            ].index(True)
         else:
             raise NameError("variable is not in model")
         return var_node
 
-    def trace_to_exog_vars(self, i: str, noisy=True):
+    def trace_to_exog_vars(self, i: int, noisy: bool = True) -> list[str] | None:
         """Prints all exogenous variables that are ancestors to the given block.
 
         Parameters:
@@ -1268,11 +1305,12 @@ class ModelSolver:
                     ]
                 )
             )
+            return None
         else:
             return self._trace_to_exog_vars(i)
 
     ## Finds all exogenous variables that are ancestors to block
-    def _trace_to_exog_vars(self, i):
+    def _trace_to_exog_vars(self, i: int) -> list[str]:
         if i < 1:
             raise IndexError("block must be >=1")
 
@@ -1282,14 +1320,18 @@ class ModelSolver:
 
         ancs_nodes = nx.ancestors(self._augmented_condenced_model_digraph, var_node)
 
-        ancs_exog_vars = tuple()
+        ancs_exog_vars: tuple[str, ...] = ()
         for node in ancs_nodes:
-            if len(nx.ancestors(self._augmented_condenced_model_digraph, node)) == 0:
-                ancs_exog_vars += self._node_varlist_mapping.get(node)
+            if len(
+                nx.ancestors(self._augmented_condenced_model_digraph, node)
+            ) == 0 and self._node_varlist_mapping.get(node):
+                ancs_exog_vars += self._node_varlist_mapping[node]
 
         return [x for x in ancs_exog_vars if x not in self.endo_vars]
 
-    def trace_to_exog_vals(self, i: int, period_index: int, noisy=True):
+    def trace_to_exog_vals(
+        self, i: int, period_index: int, noisy: bool = True
+    ) -> pd.Series | None:
         """Traces the given block back to exogenous values and prints those values.
 
         Parameters:
@@ -1335,7 +1377,7 @@ class ModelSolver:
                     _,
                     ancs_exog_lags,
                     ancs_exog_cols,
-                ) = get_var_info(self._var_mapping.get(x) for x in ancs_exog_vars)
+                ) = get_var_info(self._var_mapping[x] for x in ancs_exog_vars)
                 ancs_exog_vals = self._get_vals(
                     output_array, ancs_exog_cols, ancs_exog_lags, period_index, False
                 )
@@ -1350,13 +1392,18 @@ class ModelSolver:
                         ],
                         sep="\n",
                     )
+                    return None
                 else:
                     return pd.Series(ancs_exog_vals, index=ancs_exog_vars)
+
+            return None
 
         except AttributeError as exc:
             raise RuntimeError("no solution exists") from exc
 
-    def show_block_vals(self, i: int, period_index: int, noisy=True):
+    def show_block_vals(
+        self, i: int, period_index: int, noisy: bool = True
+    ) -> tuple[pd.Series, pd.Series] | None:
         """Prints the values of endogenous and predetermined variables in a given block for a specific period.
 
         Parameters:
@@ -1400,7 +1447,7 @@ class ModelSolver:
 
             get_var_info = self.gen_get_var_info(var_col_index)
 
-            block = self._blocks.get(i)
+            block = self._blocks[i]
 
             _, block_endo_lags, block_endo_cols = get_var_info(block[0])
             block_endo_vals = self._get_vals(
@@ -1419,7 +1466,7 @@ class ModelSolver:
                     *[
                         "=".join([x, str(y)])
                         for x, y in zip(
-                            [self._var_mapping.get(x) for x in block[0]],
+                            [self._var_mapping[x] for x in block[0]],
                             block_endo_vals,
                             strict=True,
                         )
@@ -1433,13 +1480,14 @@ class ModelSolver:
                     *[
                         "=".join([x, str(y)])
                         for x, y in zip(
-                            [self._var_mapping.get(x) for x in block[1]],
+                            [self._var_mapping[x] for x in block[1]],
                             block_pred_vals,
                             strict=True,
                         )
                     ],
                     sep="\n",
                 )
+                return None
             else:
                 return (
                     pd.Series(
@@ -1478,7 +1526,13 @@ class ModelSolver:
 
         return get_var_info
 
-    def sensitivity(self, i: int, period_index: int, method="std", exog_subset=None):
+    def sensitivity(
+        self,
+        i: int,
+        period_index: int,
+        method: str = "std",
+        exog_subset: list[str] | None = None,
+    ) -> pd.DataFrame:
         """Analyses sensitivity of endogenous variables to exogenous variables for a specific period.
 
         Parameters:
@@ -1561,7 +1615,7 @@ class ModelSolver:
             if j % int(n_exog_vars / div) == 0:
                 print(".", end="")
 
-            var, lag = self._lag_mapping.get(self._var_mapping.get(exog_var))
+            var, lag = self._lag_mapping[self._var_mapping[exog_var]]
             solution_diff = self._last_solution.copy()
 
             if method == "std":
@@ -1580,7 +1634,7 @@ class ModelSolver:
             for key, val in self._sim_code.items():
                 def_fun, obj_fun, jac, endo_vars, pred_vars, _ = val
 
-                solution = self._solve_block(
+                solution = self._solve_block(  # type: ignore
                     def_fun,
                     obj_fun,
                     jac,

@@ -68,6 +68,7 @@ warn_unreachable = true
 pretty = true
 show_column_numbers = true
 show_error_context = true
+disallow_any_generics = false
 
 [[tool.mypy.overrides]]
 module = [
