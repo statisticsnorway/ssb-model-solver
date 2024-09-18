@@ -1583,13 +1583,22 @@ class ModelSolver:
             solution_diff = self._last_solution.copy()
 
             if method == "std":
-                solution_diff[var].iloc[period_index - lag] += solution_diff[var].std()
+                solution_diff.iloc[
+                    period_index - lag, solution_diff.columns.get_loc(var)
+                ] += solution_diff[var].std()
             elif method == "pct":
-                solution_diff[var].iloc[period_index - lag] += (
-                    solution_diff[var].iloc[period_index - lag] * 0.01
+                solution_diff.iloc[
+                    period_index - lag, solution_diff.columns.get_loc(var)
+                ] += (
+                    solution_diff.iloc[
+                        period_index - lag, solution_diff.columns.get_loc(var)
+                    ]
+                    * 0.01
                 )
             elif method == "one":
-                solution_diff[var].iloc[period_index - lag] += 1
+                solution_diff.iloc[
+                    period_index - lag, solution_diff.columns.get_loc(var)
+                ] += 1
             else:
                 raise ValueError("method must be std, pct or one")
 
