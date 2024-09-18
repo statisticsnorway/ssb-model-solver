@@ -47,9 +47,6 @@ myst-parser = { version = ">=0.16.1" }
 pandas-stubs = ">=2.2.2.240807"
 ipykernel = ">=6.29.5"
 
-[tool.poetry.scripts]
-ssb-model-solver = "model_solver.__main__:main"
-
 [tool.coverage.paths]
 source = ["src", "*/site-packages"]
 tests = ["tests", "*/tests"]

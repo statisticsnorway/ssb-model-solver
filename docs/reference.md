@@ -16,10 +16,10 @@ model\_solver package
 =============================================================================
 
 
-model\_solver.functions module
+model\_solver.model\_solver module
 -----------------------------------------------------------------------------
 
-.. automodule:: model_solver.functions
+.. automodule:: model_solver.model_solver
    :members:
    :undoc-members:
    :show-inheritance:

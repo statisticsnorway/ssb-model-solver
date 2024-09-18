@@ -67,3 +67,6 @@ autodoc_typehints = "description"
 
 # Do not prepend module names to object names
 add_module_names = False
+
+# Napoleon settings
+napoleon_include_init_with_doc = True
