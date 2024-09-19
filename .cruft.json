@@ -1,7 +1,7 @@
 {
   "template": "https://github.com/statisticsnorway/ssb-pypitemplate.git",
-  "commit": "70e4bd378ffc9e87a885d938e3befd89ea26ad5b",
-  "checkout": "2024.8.8",
+  "commit": "e6f0ca2794354d16838cf36d97bee2f9f70d3142",
+  "checkout": "2024.9.10",
   "context": {
     "cookiecutter": {
       "project_name": "ssb-model-solver",
