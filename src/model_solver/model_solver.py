@@ -627,9 +627,9 @@ class ModelSolver:
                 in the list of endogenous variables.
         """
         if all(x in self.endo_vars for x in old_endo_vars) is False:
-            raise RuntimeError("all variables in old_endo_vars are not endogenous")
+            raise ValueError("all variables in old_endo_vars are not endogenous")
         if any(x in self.endo_vars for x in new_endo_vars):
-            raise RuntimeError("some variables in new_endo_vars are endogenous")
+            raise ValueError("some variables in new_endo_vars are endogenous")
 
         print("Analyzing model")
         self._endo_vars = (
@@ -663,6 +663,9 @@ class ModelSolver:
         Returns:
             The block number of the block that solves the specified endogenous variable.
             Returns `None` if the endogenous variable is not found in any block.
+
+        Raises:
+            IndexError: If `endo_var` is not endogenous in model.
         """
         block = [key for key, val in self._blocks.items() if endo_var.lower() in val[0]]
         if block:
@@ -765,6 +768,8 @@ class ModelSolver:
         Args:
             i: The index of the block to display.
 
+        Raises:
+            IndexError: If block `i` is not in model.
 
         Example:
 
@@ -1320,6 +1325,9 @@ class ModelSolver:
         Returns:
             A `pd.Series` of exogenous values, or `None`.
 
+        Raises:
+            RuntimeError: If no solution is found.
+
         Example:
 
             .. code-block:: python
@@ -1387,6 +1395,9 @@ class ModelSolver:
 
         Returns:
             Two pd.Series of endogenous and predetermined values, or `None`, `None`.
+
+        Raises:
+            RuntimeError: If no solution is found.
 
         Example:
 
@@ -1508,17 +1519,20 @@ class ModelSolver:
         Args:
             i: The index of the block for which variable values will be displayed.
             period_index: The index of the period for which variable values will be shown.
+            exog_subset: List of exogenous variables to be analysed.
+                If `None`, all relevant exogenous variables will be analysed.
             method: Method for sensitivity analysis. Default is 'std'.
 
                 - 'std': Adjusts variables by adding their standard deviation.
                 - 'pct': Adjusts variables by adding 1% of their value.
                 - 'one': Adjusts variables by adding 1 to their value.
 
-            exog_subset: List of exogenous variables to be analysed.
-                If None, all relevant exogenous variables will be analysed.
-
         Returns:
             DataFrame showing the sensitivity of endogenous variables to exogenous variables.
+
+        Raises:
+            RuntimeError: If no solution is found.
+            ValueError: If `method` is not `std`, `pct` or `one`.
 
         Example:
 
@@ -1543,7 +1557,7 @@ class ModelSolver:
                 )
             }
         except AttributeError as exc:
-            raise AttributeError(self._NO_SOLUTION_TEXT) from exc
+            raise RuntimeError(self._NO_SOLUTION_TEXT) from exc
 
         get_var_info = cache(self.gen_get_var_info(var_col_index))
 
