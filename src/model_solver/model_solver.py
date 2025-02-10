@@ -1604,7 +1604,7 @@ class ModelSolver:
             # Get the actual variable name and its lag from the mappings
             var, lag = self._lag_mapping[self._var_mapping[exog_var]]
 
-             # Create a copy of the solution for this iteration
+            # Create a copy of the solution for this iteration
             solution_diff = self._last_solution.copy()
 
             # Get the index for the lagged period we need to modify
@@ -1615,21 +1615,21 @@ class ModelSolver:
                 # Add one standard deviation to the variable
                 solution_diff.loc[mask, var] += solution_diff.loc[:, var].std()
             elif method == "pct":
-                 # Add 1% to the variable's value
+                # Add 1% to the variable's value
                 solution_diff.loc[mask, var] += solution_diff.loc[mask, var] * 0.01
             elif method == "one":
                 # Add 1 to the variable's value
                 solution_diff.loc[mask, var] += 1
             else:
                 raise ValueError("method must be std, pct or one")
-            
+
             # Convert DataFrame to numpy array for numerical operations - runs faster this way
             output_array = solution_diff.to_numpy(dtype=np.float64)
-            
+
             # Solve the model blocks with the modified variable
             for key, val in self._sim_code.items():
                 def_fun, obj_fun, jac, endo_vars, pred_vars, _ = val
-                
+
                 # Update the output array with the new solution
                 solution = self._solve_block(  # type: ignore
                     def_fun,
@@ -1641,7 +1641,7 @@ class ModelSolver:
                     period_index,
                     jit=False,
                 )
-                
+
                 # If this is the target block, store the result and break
                 output_array[
                     period_index, [var_col_index.get(x) for x in endo_vars]
