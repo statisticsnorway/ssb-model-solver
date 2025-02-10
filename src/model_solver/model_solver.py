@@ -1603,8 +1603,10 @@ class ModelSolver:
 
             # Get the actual variable name and its lag from the mappings
             var, lag = self._lag_mapping[self._var_mapping[exog_var]]
+
              # Create a copy of the solution for this iteration
             solution_diff = self._last_solution.copy()
+
             # Get the index for the lagged period we need to modify
             mask = solution_diff.index[period_index - lag]
 
@@ -1639,6 +1641,7 @@ class ModelSolver:
                     period_index,
                     jit=False,
                 )
+                
                 # If this is the target block, store the result and break
                 output_array[
                     period_index, [var_col_index.get(x) for x in endo_vars]
@@ -1647,7 +1650,7 @@ class ModelSolver:
                 if key == i:
                     result[exog_var] = solution.get("x")
                     break
-                
+
         # Return the sensitivity results as differences from the original solution
         return (
             pd.DataFrame(result, index=endo_vars).T
