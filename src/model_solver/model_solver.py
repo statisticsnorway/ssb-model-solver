@@ -1549,6 +1549,7 @@ class ModelSolver:
                 exog_var1  |    0.23    |    0.12    |
                 exog_var2  |    0.45    |    0.56    |
         """
+        # Create a mapping of variable names to their column indices in the solution DataFrame
         try:
             var_col_index = {
                 var: i
@@ -1558,23 +1559,28 @@ class ModelSolver:
             }
         except AttributeError as exc:
             raise RuntimeError(self._NO_SOLUTION_TEXT) from exc
-
+        # Cache the variable information getter for performance
         get_var_info = cache(self.gen_get_var_info(var_col_index))
 
+        # Get list of exogenous variables that affect block i
         exog_vars = self._trace_to_exog_vars(i)
 
+        # Filter exogenous variables if a subset is specified
         if exog_subset:
             exog_vars = [x for x in exog_vars if x in exog_subset]
 
+        # Calculate number of progress indicators to show
         n_exog_vars = len(exog_vars)
         div = min(10, n_exog_vars)
 
+        # Initialize dictionary to store sensitivity results
         result = {}
 
-        div = min(10, n_exog_vars)
+        # Print analysis information and setup progress display
         print(
             f"Analysing sensitivity for block {i} in period {self._last_solution.index[period_index]}"
         )
+        # Create progress bar display
         print(f"Number exogeneous variables to analyse: {len(exog_vars)}")
         print(
             "".join(
@@ -1589,28 +1595,40 @@ class ModelSolver:
             )
         )
         print("\t ", end="")
+
+        # Iterate through each exogenous variable to analyze sensitivity
         for j, exog_var in enumerate(exog_vars):
             if j % int(n_exog_vars / div) == 0:
                 print(".", end="")
 
+            # Get the actual variable name and its lag from the mappings
             var, lag = self._lag_mapping[self._var_mapping[exog_var]]
+             # Create a copy of the solution for this iteration
             solution_diff = self._last_solution.copy()
+            # Get the index for the lagged period we need to modify
             mask = solution_diff.index[period_index - lag]
-            
+
+            # Modify the variable value based on the specified method
             if method == "std":
+                # Add one standard deviation to the variable
                 solution_diff.loc[mask, var] += solution_diff.loc[:, var].std()
             elif method == "pct":
+                 # Add 1% to the variable's value
                 solution_diff.loc[mask, var] += solution_diff.loc[mask, var] * 0.01
             elif method == "one":
+                # Add 1 to the variable's value
                 solution_diff.loc[mask, var] += 1
             else:
                 raise ValueError("method must be std, pct or one")
-
+            
+            # Convert DataFrame to numpy array for numerical operations - runs faster this way
             output_array = solution_diff.to_numpy(dtype=np.float64)
-
+            
+            # Solve the model blocks with the modified variable
             for key, val in self._sim_code.items():
                 def_fun, obj_fun, jac, endo_vars, pred_vars, _ = val
-
+                
+                # Update the output array with the new solution
                 solution = self._solve_block(  # type: ignore
                     def_fun,
                     obj_fun,
@@ -1621,7 +1639,7 @@ class ModelSolver:
                     period_index,
                     jit=False,
                 )
-
+                # If this is the target block, store the result and break
                 output_array[
                     period_index, [var_col_index.get(x) for x in endo_vars]
                 ] = solution.get("x")
@@ -1629,7 +1647,8 @@ class ModelSolver:
                 if key == i:
                     result[exog_var] = solution.get("x")
                     break
-
+                
+        # Return the sensitivity results as differences from the original solution
         return (
             pd.DataFrame(result, index=endo_vars).T
             - self._last_solution[list(endo_vars)].iloc[period_index]
