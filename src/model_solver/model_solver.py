@@ -4,7 +4,6 @@
 # mkh@ssb.no/magnus.helliesen@gmail.com #
 #########################################
 
-from ast import Raise
 from collections import Counter
 from collections.abc import Callable
 from collections.abc import Generator
