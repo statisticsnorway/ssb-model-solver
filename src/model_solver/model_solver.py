@@ -847,7 +847,6 @@ class ModelSolver:
         Examples:
             >>> import ModelSolver
             >>> import pandas as pd
-            
             >>> # Raises error for empty DataFrame
             >>> df_empty = pd.DataFrame()
             >>> ModelSolver._validate_unique_column_names(df_empty)
