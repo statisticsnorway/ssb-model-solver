@@ -843,23 +843,6 @@ class ModelSolver:
                 1. If the DataFrame has no columns
                 2. If any column names are duplicated (error message will include
                 which columns are duplicated and their count)
-
-        Examples:
-            >>> import ModelSolver
-            >>> import pandas as pd
-            >>> # Raises error for empty DataFrame
-            >>> df_empty = pd.DataFrame()
-            >>> ModelSolver._validate_unique_column_names(df_empty)
-            ValueError: DataFrame has no columns
-
-            >>> # Raises error for duplicate columns
-            >>> df_dupes = pd.DataFrame(columns=['A', 'B', 'A'])
-            >>> ModelSolver._validate_unique_column_names(df_dupes)
-            ValueError: Found duplicate column names in DataFrame. The following columns appear multiple times: {'A': 2}
-
-            >>> # Passes with unique columns
-            >>> df_valid = pd.DataFrame(columns=['A', 'B', 'C'])
-            >>> ModelSolver._validate_unique_column_names(df_valid)  # No error raised
         """
         col_counts = df.columns.value_counts().sum()
         if col_counts == 0:
