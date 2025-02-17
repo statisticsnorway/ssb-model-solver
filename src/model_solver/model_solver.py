@@ -842,7 +842,7 @@ class ModelSolver:
         Raises:
             ValueError: In two cases:
                 1. If the DataFrame has no columns
-                2. If any column names are duplicated (error message will include 
+                2. If any column names are duplicated (error message will include
                 which columns are duplicated and their count)
 
         Examples:
@@ -863,14 +863,14 @@ class ModelSolver:
         col_counts = df.columns.value_counts().sum()
         if col_counts == 0:
             raise ValueError("DataFrame has no columns")
-            
+
         if len(df.columns) > df.columns.nunique():
             counts = df.columns.value_counts()
             duplicates = counts[counts > 1]
             raise ValueError(
-                f'Found duplicate column names in DataFrame. '
-                f'The following columns appear multiple times: '
-                f'{duplicates.to_dict()}'
+                f"Found duplicate column names in DataFrame. "
+                f"The following columns appear multiple times: "
+                f"{duplicates.to_dict()}"
             )
 
     def solve_model(self, input_df: pd.DataFrame, jit: bool = True) -> pd.DataFrame:
