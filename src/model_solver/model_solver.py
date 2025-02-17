@@ -4,6 +4,7 @@
 # mkh@ssb.no/magnus.helliesen@gmail.com #
 #########################################
 
+from ast import Raise
 from collections import Counter
 from collections.abc import Callable
 from collections.abc import Generator
@@ -831,6 +832,47 @@ class ModelSolver:
         else:
             raise IndexError(f"block {i} is not in model")
 
+    @staticmethod
+    def _validate_unique_column_names(df: pd.DataFrame) -> None:
+        """Validates that all column names in the DataFrame are unique and that the DataFrame is not empty.
+
+        Args:
+            df (pd.DataFrame): The DataFrame to validate.
+
+        Raises:
+            ValueError: In two cases:
+                1. If the DataFrame has no columns
+                2. If any column names are duplicated (error message will include 
+                which columns are duplicated and their count)
+
+        Examples:
+            >>> # Raises error for empty DataFrame
+            >>> df_empty = pd.DataFrame()
+            >>> _validate_unique_column_names(df_empty)
+            ValueError: DataFrame has no columns
+
+            >>> # Raises error for duplicate columns
+            >>> df_dupes = pd.DataFrame(columns=['A', 'B', 'A'])
+            >>> _validate_unique_column_names(df_dupes)
+            ValueError: Found duplicate column names in DataFrame. The following columns appear multiple times: {'A': 2}
+
+            >>> # Passes with unique columns
+            >>> df_valid = pd.DataFrame(columns=['A', 'B', 'C'])
+            >>> _validate_unique_column_names(df_valid)  # No error raised
+        """
+        col_counts = df.columns.value_counts().sum()
+        if col_counts == 0:
+            raise ValueError("DataFrame has no columns")
+            
+        if len(df.columns) > df.columns.nunique():
+            counts = df.columns.value_counts()
+            duplicates = counts[counts > 1]
+            raise ValueError(
+                f'Found duplicate column names in DataFrame. '
+                f'The following columns appear multiple times: '
+                f'{duplicates.to_dict()}'
+            )
+
     def solve_model(self, input_df: pd.DataFrame, jit: bool = True) -> pd.DataFrame:
         """Solves the model subject to a given DataFrame.
 
@@ -872,6 +914,9 @@ class ModelSolver:
             Finished
             ----------------------------------------------------------------------------------------------------
         """
+        # Raises error if non-unique_names are detected
+        self._validate_unique_column_names(input_df)
+
         if (
             all(np.issubdtype(input_df[x].dtype, np.number) for x in input_df.columns)  # type: ignore
             is False
