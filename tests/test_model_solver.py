@@ -184,3 +184,41 @@ def test_sensitivity(
     # k2 will be in the block analysed with current equation set
     assert "k2" in sens_std.columns
     assert np.allclose(4.732277, sens_std["k2"].sum(), atol=0.00001)
+
+
+def test_validate_unique_column_names_passes() -> None:
+    """Test that validation passes with unique column names."""
+    df = pd.DataFrame(columns=["A", "B", "C"])
+    ms.ModelSolver._validate_unique_column_names(df)  # Should pass without raising
+
+
+def test_validate_unique_column_names_fails_single_duplicate() -> None:
+    """Test that validation fails with a single duplicated column."""
+    df = pd.DataFrame(columns=["A", "B", "A"])
+
+    with pytest.raises(ValueError) as exc_info:
+        ms.ModelSolver._validate_unique_column_names(df)
+
+    assert "Found duplicate column names in DataFrame" in str(exc_info.value)
+    assert "{'A': 2}" in str(exc_info.value)
+
+
+def test_validate_unique_column_names_fails_multiple_duplicates() -> None:
+    """Test that validation fails with multiple duplicated columns."""
+    df = pd.DataFrame(columns=["A", "B", "A", "B", "C"])
+
+    with pytest.raises(ValueError) as exc_info:
+        ms.ModelSolver._validate_unique_column_names(df)
+
+    assert "Found duplicate column names in DataFrame" in str(exc_info.value)
+    # Check both duplicates are reported
+    assert "'A': 2" in str(exc_info.value)
+    assert "'B': 2" in str(exc_info.value)
+
+
+def test_validate_unique_column_names_empty_df() -> None:
+    """Test that validation passes with an empty DataFrame."""
+    df = pd.DataFrame()
+    with pytest.raises(ValueError) as exc_info:
+        ms.ModelSolver._validate_unique_column_names(df)
+    assert "DataFrame has no columns" in str(exc_info)
