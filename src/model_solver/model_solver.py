@@ -844,11 +844,11 @@ class ModelSolver:
                 2. If any column names are duplicated (error message will include
                 which columns are duplicated and their count)
         """
-        col_counts = df.columns.value_counts().sum()
-        if col_counts == 0:
+        total_columns = df.columns.value_counts().sum()
+        if total_columns == 0:
             raise ValueError("DataFrame has no columns")
 
-        if len(df.columns) > df.columns.nunique():
+        if total_columns > df.columns.nunique():
             counts = df.columns.value_counts()
             duplicates = counts[counts > 1]
             raise ValueError(
