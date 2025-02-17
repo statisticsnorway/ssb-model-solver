@@ -914,7 +914,7 @@ class ModelSolver:
             Finished
             ----------------------------------------------------------------------------------------------------
         """
-        # Raises error if non-unique_names are detected
+        # Raises error if non-unique column names are detected or if dataframe is empty
         self._validate_unique_column_names(input_df)
 
         if (
