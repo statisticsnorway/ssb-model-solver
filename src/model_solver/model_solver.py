@@ -21,7 +21,9 @@ from numpy.typing import NDArray
 from symengine import Add
 from symengine import Lambdify
 from symengine import Matrix
-from symengine import Max # noqa: F401 # used at runtime via eval() when replacing "max(" -> "Max("
+from symengine import (
+    Max,  # noqa: F401 # used at runtime via eval() when replacing "max(" -> "Max("
+)
 from symengine import Symbol
 from symengine import var
 
