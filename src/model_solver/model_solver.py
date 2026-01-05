@@ -23,7 +23,7 @@ from symengine import Lambdify
 from symengine import Matrix
 from symengine import Symbol
 from symengine import var
-from symengine import Max
+from symengine import Max # noqa: F401 # used at runtime via eval() when replacing "max(" -> "Max("
 
 class ModelSolver:
     """ModelSolver is designed to handle and solve mathematical models represented by a system of equations.
