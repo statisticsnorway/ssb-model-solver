@@ -18,7 +18,12 @@ import numpy as np
 import pandas as pd
 from numba import njit
 from numpy.typing import NDArray
-from symengine import Add, Lambdify, Matrix, Max, Symbol, var  # noqa: F401  # Max used at runtime via eval()
+from symengine import Add
+from symengine import Lambdify
+from symengine import Matrix
+from symengine import Max # noqa: F401 # used at runtime via eval() when replacing "max(" -> "Max("
+from symengine import Symbol
+from symengine import var
 
 
 class ModelSolver:
