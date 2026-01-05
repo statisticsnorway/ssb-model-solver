@@ -23,7 +23,7 @@ from symengine import Lambdify
 from symengine import Matrix
 from symengine import Symbol
 from symengine import var
-
+from symengine import Max
 
 class ModelSolver:
     """ModelSolver is designed to handle and solve mathematical models represented by a system of equations.
@@ -558,7 +558,14 @@ class ModelSolver:
                         None,
                         None,
                     )
-                def_fun = eval(rhs_str)
+                try:
+                    rhs_str_ = rhs_str.replace("max(", "Max(")
+                    def_fun = eval(rhs_str_)
+                except TypeError as e:
+                    print(f"Couldn't evaluate {rhs_str}, TypeError: {e}")
+                except NameError as e:
+                    print(f"Couldn't evaluate {rhs_str}, NameError: {e}")
+
                 def_fun_lam = Lambdify([pred_sym], def_fun)
 
                 def def_fun_out(
