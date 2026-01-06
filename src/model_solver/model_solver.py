@@ -954,9 +954,9 @@ class ModelSolver:
                     jit=jit,
                 )
 
-                output_array[period, np.array([var_col_index.get(x) for x in endo_vars])] = (
-                    solution.get("x")
-                )
+                output_array[
+                    period, np.array([var_col_index.get(x) for x in endo_vars])
+                ] = solution.get("x")
 
                 if solution.get("status") == 1:
                     warnings += (
@@ -1684,7 +1684,7 @@ class ModelSolver:
                 # If this is the target block, store the result and break
                 output_array[
                     period_index, np.array([var_col_index.get(x) for x in endo_vars])
-                    ] = solution.get("x")
+                ] = solution.get("x")
 
                 if key == i:
                     result[exog_var] = solution.get("x")
