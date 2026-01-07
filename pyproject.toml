@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ssb-model-solver"
-version = "1.4.1"
+version = "1.4.2"
 description = "Class to define, block analyse and solve dynamic and algebraic models numerically"
 authors = ["Benedikt Goodman <benedikt.goodman@ssb.no>"]
 license = "MIT"

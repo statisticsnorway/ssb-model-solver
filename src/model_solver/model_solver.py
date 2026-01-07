@@ -21,6 +21,9 @@ from numpy.typing import NDArray
 from symengine import Add
 from symengine import Lambdify
 from symengine import Matrix
+from symengine import (
+    Max,  # noqa: F401 # used at runtime via eval() when replacing "max(" -> "Max("
+)
 from symengine import Symbol
 from symengine import var
 
@@ -558,7 +561,14 @@ class ModelSolver:
                         None,
                         None,
                     )
-                def_fun = eval(rhs_str)
+                try:
+                    rhs_str_ = rhs_str.replace("max(", "Max(")
+                    def_fun = eval(rhs_str_)
+                except TypeError as e:
+                    print(f"Couldn't evaluate {rhs_str}, TypeError: {e}")
+                except NameError as e:
+                    print(f"Couldn't evaluate {rhs_str}, NameError: {e}")
+
                 def_fun_lam = Lambdify([pred_sym], def_fun)
 
                 def def_fun_out(
@@ -944,9 +954,9 @@ class ModelSolver:
                     jit=jit,
                 )
 
-                output_array[period, [var_col_index.get(x) for x in endo_vars]] = (
-                    solution.get("x")
-                )
+                output_array[
+                    period, np.array([var_col_index.get(x) for x in endo_vars])
+                ] = solution.get("x")
 
                 if solution.get("status") == 1:
                     warnings += (
@@ -1673,7 +1683,7 @@ class ModelSolver:
 
                 # If this is the target block, store the result and break
                 output_array[
-                    period_index, [var_col_index.get(x) for x in endo_vars]
+                    period_index, np.array([var_col_index.get(x) for x in endo_vars])
                 ] = solution.get("x")
 
                 if key == i:
