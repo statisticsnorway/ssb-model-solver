@@ -18,7 +18,6 @@
 [pypi status]: https://pypi.org/project/ssb-model-solver/
 [documentation]: https://statisticsnorway.github.io/ssb-model-solver
 [tests]: https://github.com/statisticsnorway/ssb-model-solver/actions?workflow=Tests
-
 [sonarcov]: https://sonarcloud.io/summary/overall?id=statisticsnorway_ssb-model-solver
 [sonarquality]: https://sonarcloud.io/summary/overall?id=statisticsnorway_ssb-model-solver
 [pre-commit]: https://github.com/pre-commit/pre-commit

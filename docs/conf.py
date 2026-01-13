@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.abspath("../src"))
 
 project = "SSB Model Solver"
 copyright = "2024, Statistics Norway"
-author = "Benedikt Goodman"
+author = "Vemund Rundberget"
 
 # -- General configuration ---------------------------------------------------
 

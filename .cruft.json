@@ -1,7 +1,7 @@
 {
   "template": "https://github.com/statisticsnorway/ssb-pypitemplate.git",
-  "commit": "66884cffa5aa67ed505bb121009501b51cc4d847",
-  "checkout": "2025.1.14",
+  "commit": "1b94f545381a9ce08e205e7451d7a4f07eaef142",
+  "checkout": "2026.1.7",
   "context": {
     "cookiecutter": {
       "project_name": "ssb-model-solver",
@@ -9,13 +9,15 @@
       "friendly_name": "SSB Model Solver",
       "copyright_owner": "Statistics Norway",
       "copyright_year": "2024",
-      "author": "Magnus Helliesen, Benedikt Goodman",
-      "email": "benedikt.goodman@ssb.no",
+      "author": "Vemund Rundberget",
+      "email": "vemund.rundberget@ssb.no",
       "github_organization": "statisticsnorway",
       "version": "1.1.23",
       "license": "MIT",
       "development_status": "Development Status :: 4 - Beta",
       "code_quality_level": "Medium",
+      "dependency_manager_tool": "poetry",
+      "department_number": "210",
       "_copy_without_render": [
         "*.rst_t"
       ],
@@ -24,7 +26,7 @@
         "trim_blocks": true
       },
       "_template": "https://github.com/statisticsnorway/ssb-pypitemplate.git",
-      "_commit": "66884cffa5aa67ed505bb121009501b51cc4d847"
+      "_commit": "1b94f545381a9ce08e205e7451d7a4f07eaef142"
     }
   },
   "directory": null
