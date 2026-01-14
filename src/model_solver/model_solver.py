@@ -11,6 +11,7 @@ from collections.abc import Iterable
 from collections.abc import Sequence
 from functools import cache
 from typing import Any
+from typing import no_type_check
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -469,8 +470,8 @@ class ModelSolver:
             int,
             tuple[
                 Callable[..., NDArray[Any]] | None,
-                Callable[[Iterable[Any], Any], NDArray[Any]] | None,
-                Callable[[Iterable[Any], Any], NDArray[Any]] | None,
+                Callable[..., NDArray[Any]] | None,
+                Callable[..., NDArray[Any]] | None,
                 tuple[str, ...],
                 tuple[str, ...],
                 tuple[list[str], ...],
@@ -538,8 +539,8 @@ class ModelSolver:
         pred_vars: tuple[str, ...],
     ) -> tuple[
         Callable[..., NDArray[Any]] | None,
-        Callable[[Iterable[Any], Any], NDArray[Any]] | None,
-        Callable[[Iterable[Any], Any], NDArray[Any]] | None,
+        Callable[..., NDArray[Any]] | None,
+        Callable[..., NDArray[Any]] | None,
     ]:
         endo_sym: list[Symbol] = []
         pred_sym: list[Symbol] = []
@@ -572,8 +573,8 @@ class ModelSolver:
                 def_fun_lam = Lambdify([pred_sym], def_fun)
 
                 def def_fun_out(
-                    args: list[Symbol],
-                    def_fun_lam_: Callable[[list[Symbol]], Any] = def_fun_lam,
+                    args: Sequence[Any],
+                    def_fun_lam_: Callable[[Sequence[Any]], Any] = def_fun_lam,
                 ) -> NDArray[np.float64]:
                     return np.array([def_fun_lam_(args)], dtype=np.float64)
 
@@ -846,7 +847,7 @@ class ModelSolver:
         """Validates that all column names in the DataFrame are unique and that the DataFrame is not empty.
 
         Args:
-            df (pd.DataFrame): The DataFrame to validate.
+            df: The DataFrame to validate.
 
         Raises:
             ValueError: In two cases:
@@ -1070,7 +1071,8 @@ class ModelSolver:
     # Some weird stuff had to be implemented for njit to stop complaining
     # Not sure if njit increases efficiency
     @staticmethod
-    @njit  # type: ignore
+    @no_type_check
+    @njit
     def _get_vals_jit(
         array: NDArray[np.float64],
         cols: NDArray[np.int64],
@@ -1099,10 +1101,10 @@ class ModelSolver:
     # Solves root finding problem using simple Newton-Raphson method
     @staticmethod
     def _newton_raphson(
-        f: Callable[[Iterable[Any], Any], NDArray[Any]],
+        f: Callable[..., NDArray[Any]],
         init: NDArray[np.float64],
-        args: tuple[NDArray[np.float64]],
-        jac: Callable[[Iterable[Any], Any], NDArray[Any]],
+        args: tuple[Any, ...],
+        jac: Callable[..., NDArray[Any]],
         tol: float,
         maxiter: int,
     ) -> dict[str, NDArray[np.float64] | bool | int]:
@@ -1558,9 +1560,9 @@ class ModelSolver:
         Args:
             i: The index of the block for which variable values will be displayed.
             period_index: The index of the period for which variable values will be shown.
+            method: Method for sensitivity analysis. Default is 'std'.
             exog_subset: List of exogenous variables to be analysed.
                 If `None`, all relevant exogenous variables will be analysed.
-            method: Method for sensitivity analysis. Default is 'std'.
 
                 - 'std': Adjusts variables by adding their standard deviation.
                 - 'pct': Adjusts variables by adding 1% of their value.
