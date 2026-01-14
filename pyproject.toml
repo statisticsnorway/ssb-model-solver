@@ -1,49 +1,88 @@
-[tool.poetry]
+[project]
 name = "ssb-model-solver"
 version = "1.4.2"
 description = "Class to define, block analyse and solve dynamic and algebraic models numerically"
-authors = ["Benedikt Goodman <benedikt.goodman@ssb.no>"]
+authors = [{ name = "Vemund Rundberget", email = "vemund.rundberget@ssb.no" }]
+maintainers = [{ name = "Statistics Norway, National accounts Department (210)" }]
 license = "MIT"
 readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dynamic = ["classifiers"]
+dependencies = [
+    "matplotlib>=3.10.8",
+    "networkx>=3.6.1",
+    "numba>=0.63.1",
+    "numpy>=2.3",
+    "pandas>=2.3.3",
+    "symengine>=0.14.1",
+]
+
+[project.urls]
 homepage = "https://github.com/statisticsnorway/ssb-model-solver"
 repository = "https://github.com/statisticsnorway/ssb-model-solver"
 documentation = "https://statisticsnorway.github.io/ssb-model-solver"
-packages = [{ include = "model_solver", from = "src" }]
-classifiers = ["Development Status :: 4 - Beta"]
-
-[tool.poetry.urls]
 Changelog = "https://github.com/statisticsnorway/ssb-model-solver/releases"
 
-[tool.poetry.dependencies]
-python = ">=3.10,<4.0"
-symengine = ">=0.9.2"
-matplotlib = ">=3.7.1"
-numba = ">=0.57.0"
-numpy = ">=1.26"
-pandas = ">=2.0"
-networkx = ">=3.3"
+[dependency-groups]
+lint = [
+    "black[jupyter]>=25.11.0",
+    "pre-commit>=4.4.0",
+    "pre-commit-hooks>=6.0.0",
+    "pydoclint>=0.8.3",
+    "ruff>=0.14.5",
+]
+doc = [
+    "furo>=2025.9.25; python_version >= '3.11'",
+    "myst-parser>=4.0.1; python_version >= '3.11'",
+    "sphinx>=8.2.3; python_version >= '3.11'",
+    "sphinx-autobuild>=2025.8.25; python_version >= '3.11'",
+    "sphinx-autodoc-typehints>=3.5.2; python_version >= '3.11'",
+    "sphinx-click>=6.1.0; python_version >= '3.11'",
+]
+# There is a bug in poetry regarding nested dependency groups. It
+# has been fixed but not released yet, waiting for version 2.2.2. See:
+# https://github.com/python-poetry/poetry/issues/10632
+# Need to duplicate doc and lint dependencies in dev for now.
 
-[tool.poetry.group.dev.dependencies]
-pygments = ">=2.10.0"
-black = { extras = ["jupyter"], version = ">=23.1.0" }
-coverage = { extras = ["toml"], version = ">=6.2" }
-darglint = ">=1.8.1"
-furo = ">=2021.11.12"
-mypy = ">=0.930"
-pre-commit = ">=2.16.0"
-pre-commit-hooks = ">=4.1.0"
-ruff = ">=0.0.284"
-pytest = ">=6.2.5"
-sphinx = ">=6.2.1"
-sphinx-autobuild = ">=2021.3.14"
-sphinx-autodoc-typehints = ">=1.24.0"
-sphinx-click = ">=3.0.2"
-typeguard = ">=2.13.3"
-xdoctest = { extras = ["colors"], version = ">=0.15.10" }
-myst-parser = { version = ">=0.16.1" }
-pandas-stubs = ">=2.2.2.240807"
-ipykernel = ">=6.29.5"
-deptry = ">=0.20.0"
+# Type hint stubs should be placed in the dev dependency group
+dev = [
+    # lint dependencies
+    "black[jupyter]>=25.11.0",
+    "pre-commit>=4.4.0",
+    "pre-commit-hooks>=6.0.0",
+    "pydoclint>=0.8.3",
+    "ruff>=0.14.5",
+
+    # doc dependencies
+    "furo>=2025.9.25; python_version >= '3.11'",
+    "myst-parser>=4.0.1; python_version >= '3.11'",
+    "sphinx>=8.2.3; python_version >= '3.11'",
+    "sphinx-autobuild>=2025.8.25; python_version >= '3.11'",
+    "sphinx-autodoc-typehints>=3.5.2; python_version >= '3.11'",
+    "sphinx-click>=6.1.0; python_version >= '3.11'",
+
+    # dev dependendcies
+    "coverage[toml]>=7.11.3",
+    "deptry>=0.24.0",
+    "mypy>=1.18.2",
+    "pygments>=2.19.0",
+    "pytest>=9.0.0",
+    "typeguard>=2.13.3",
+    "xdoctest[colors]>=1.3.0",
+    "pandas-stubs>=2.3.3.251219",
+    "ipykernel>=7.1.0",
+]
+
+[tool.poetry]
+classifiers = ["Development Status :: 4 - Beta"]
+requires-poetry = ">=2.2"
+packages = [{ include = "model_solver", from = "src" }]
+
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.9"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
 
 [tool.coverage.paths]
 source = ["src", "*/site-packages"]
@@ -57,6 +96,9 @@ relative_files = true
 [tool.coverage.report]
 show_missing = true
 fail_under = 50
+
+[tool.deptry.per_rule_ignores]
+DEP001 = ["nox", "nox_poetry"]  # packages available by default
 
 [tool.mypy]
 strict = true
@@ -76,11 +118,20 @@ module = [
 ]
 ignore_missing_imports = true
 
+[tool.pydoclint]
+style = "google"
+exclude = '\.git|\.nox'
+arg-type-hints-in-docstring = false
+check-return-types = false
+check-yield-types = false
+allow-init-docstring = true
+quiet = true
+
 [tool.ruff]
 force-exclude = true  # Apply excludes to pre-commit
 show-fixes = true
 src = ["src", "tests"]
-target-version = "py310"  # Minimum Python version supported
+target-version = "py311"  # Minimum Python version supported
 include = ["*.py", "*.pyi", "**/pyproject.toml", "*.ipynb"]
 extend-exclude = [
     "__pycache__",
@@ -105,12 +156,16 @@ select = [
     "RUF",  # the ruff developer's own rules
 ]
 ignore = [
-    "ANN202", # Don't requiere return type annotation for private functions.
+    "ANN202", # Don't require return type annotation for private functions.
     "ANN401", # Allow type annotation with type Any.
     "D100",   # Supress undocumented-public-module. Only doc of public api required.
+    "FBT001", # Allow boolean positional arguments in a function.
+    "FBT002", # Allow boolean default positional arguments in a function.
     "E402",   # Supress module-import-not-at-top-of-file, needed in jupyter notebooks.
     "E501",   # Supress line-too-long warnings: trust black's judgement on this one.
+    "PLR2004", # Allow to compare with unnamed numerical constants.
 ]
+external = ["DOC"]  # Avoiding removing any codes starting with `DOC` from any `# noqa` directives.
 
 [tool.ruff.lint.isort]
 force-single-line = true
@@ -120,6 +175,9 @@ max-complexity = 15
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"  # You can also use "numpy".
+
+[tool.ruff.lint.pylint]
+max-args = 8
 
 [tool.ruff.lint.pep8-naming]
 classmethod-decorators = ["classmethod", "validator", "root_validator", "pydantic.validator"]
@@ -146,9 +204,6 @@ formats = "ipynb,auto:percent"
 notebook_metadata_filter = "jupytext.text_representation,-jupytext.text_representation.jupytext_version,-widgets,-varInspector"
 cell_metadata_filter = "-papermill,tags"
 
-[tool.deptry.per_rule_ignores]
-DEP001 = ["src", "nox", "nox_poetry"]  # packages available by default
-
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
