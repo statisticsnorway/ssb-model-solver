@@ -969,6 +969,9 @@ class ModelSolver:
                 continue
             break
 
+        # Write solved values back into the DataFrame (output_array is a copy)
+        output_df.iloc[:, :] = output_array
+
         if len(warnings) > 0:
             print("\n")
             print("\n".join(warnings))
