@@ -922,7 +922,7 @@ class ModelSolver:
         print("Solving model")
 
         output_df = input_df.copy(deep=True).astype(float)
-        output_array = output_df.to_numpy(dtype=np.float64)
+        output_array = output_df.to_numpy(dtype=np.float64, copy=True)
         var_col_index = {
             var: i for i, var in enumerate(output_df.columns.str.lower().to_list())
         }
@@ -1665,7 +1665,7 @@ class ModelSolver:
                 raise ValueError("method must be std, pct or one")
 
             # Convert DataFrame to numpy array for numerical operations - runs faster this way
-            output_array = solution_diff.to_numpy(dtype=np.float64)
+            output_array = solution_diff.to_numpy(dtype=np.float64, copy=True)
 
             # Solve the model blocks with the modified variable
             for key, val in self._sim_code.items():
