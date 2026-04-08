@@ -511,7 +511,7 @@ class ModelSolver:
             block_pred_vars_set.difference_update(set(block_endo_vars))
             block_pred_vars = tuple(block_pred_vars_set)
 
-            (def_fun, obj_fun, jac) = self._gen_def_or_obj_fun_and_jac(
+            def_fun, obj_fun, jac = self._gen_def_or_obj_fun_and_jac(
                 block_eqns_lags, block_endo_vars, block_pred_vars
             )
             sim_code[i + 1] = (
