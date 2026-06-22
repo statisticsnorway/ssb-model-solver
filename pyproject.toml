@@ -6,7 +6,7 @@ authors = [{ name = "Vemund Rundberget", email = "vemund.rundberget@ssb.no" }]
 maintainers = [{ name = "Statistics Norway, National accounts Department (210)" }]
 license = "MIT"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<4"
 dynamic = ["classifiers"]
 dependencies = [
     "matplotlib>=3.10.8",
