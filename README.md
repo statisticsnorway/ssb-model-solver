@@ -60,16 +60,16 @@ ModelSolver uses the following packages
 * [Matplotlib](https://matplotlib.org/)
 
 ## Example of use
-Let `equations = ['x+y = 1', 'x-y = 2']` and `endogenous = ['x', 'y']`, then the model class is initialized by
+Let `equations = ['x+y = 1', 'x-y = 2']` and `endogenous = ['x', 'y']`, then the model class is instatiatied by
 
 ```python
 model = ms.ModelSolver(equations, endogenous)
 ```
 
-When initialized, the class reads in the equations, analyzes them for any lags, before it block analyzes it to find the smalles model blocks that must be solved simultaneously.
+When instatiatied, the class reads in the equations, analyzes them for any lags, before it block analyzes it to find the smallest model blocks that must be solved simultaneously.
 Note that ModelSolver is not case sensitive, such that 'x' and 'X' are the same, both in equations, lists and dataframe (below).
 
-When the class is finished initializing, the user can call the following methods:
+When the class is finished instatiating, the user can call the following methods:
 * ```solution = model.solve(dataframe)``` where `dataframe` is a **Pandas** dataframe containing initial values for the endogenous variables and values for the exogenous variables. `solution` is a dataframe with same dimensions as `dataframe` containing the solutions for the endogenous variables.
 * ```model.switch_endo_vars(old_endo_var, new_endo_var)``` switches the endogenous variables `old_endo_var` for `new_endo_var`.
 * ```model.describe()``` writes out information about the model: the number of blocks, the size of the blocks etc.
