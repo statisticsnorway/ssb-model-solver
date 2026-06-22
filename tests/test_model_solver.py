@@ -105,6 +105,38 @@ def test_solve_model(
         assert solution[col].tolist() == pytest.approx(values, rel=TOLERANCE)
 
 
+# Regression test for the Copy-on-Write no-op bug (pandas >= 3.0)
+@pytest.mark.parametrize("force_single_block", [False, True])
+def test_solve_model_writes_back_under_cow(force_single_block: bool) -> None:
+    """solve_model must return solved endogenous values, not the initial guesses.
+
+    Under pandas >= 3.0 Copy-on-Write, DataFrame.to_numpy() no longer aliases
+    the DataFrame, so the solver works on a detached copy. Without an explicit
+    write-back this silently dropped all results on a multi-block frame
+    (returning the initial guesses unchanged) or raised "assignment destination
+    is read-only" on a single-block frame. The assertions below are
+    layout-agnostic so both variants are guarded.
+    """
+    model = ms.ModelSolver(["x = a", "y = x + b"], ["x", "y"])
+
+    df = pd.DataFrame(
+        {
+            "a": [10.0, 20.0, 30.0],
+            "b": [1, 2, 3],  # int -> multi-block frame by default
+            "x": [999.0, 999.0, 999.0],  # deliberately wrong initial guesses
+            "y": [999.0, 999.0, 999.0],
+        }
+    )
+    if force_single_block:
+        # Consolidate into a single float block (to_numpy() returns a read-only view)
+        df = pd.DataFrame(df.to_numpy(dtype=float), columns=df.columns)
+
+    sol = model.solve_model(df)
+
+    np.testing.assert_allclose(sol["x"].to_numpy(), [10.0, 20.0, 30.0])
+    np.testing.assert_allclose(sol["y"].to_numpy(), [11.0, 22.0, 33.0])
+
+
 # Test switching endogenous variables
 def test_switch_endo_vars(equations: list[str], endogenous: list[str]) -> None:
     model = ms.ModelSolver(equations, endogenous)
