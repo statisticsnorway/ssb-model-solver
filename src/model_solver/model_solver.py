@@ -511,7 +511,7 @@ class ModelSolver:
             block_pred_vars_set.difference_update(set(block_endo_vars))
             block_pred_vars = tuple(block_pred_vars_set)
 
-            (def_fun, obj_fun, jac) = self._gen_def_or_obj_fun_and_jac(
+            def_fun, obj_fun, jac = self._gen_def_or_obj_fun_and_jac(
                 block_eqns_lags, block_endo_vars, block_pred_vars
             )
             sim_code[i + 1] = (
@@ -922,7 +922,7 @@ class ModelSolver:
         print("Solving model")
 
         output_df = input_df.copy(deep=True).astype(float)
-        output_array = output_df.to_numpy(dtype=np.float64)
+        output_array = output_df.to_numpy(dtype=np.float64, copy=True)
         var_col_index = {
             var: i for i, var in enumerate(output_df.columns.str.lower().to_list())
         }
@@ -968,6 +968,9 @@ class ModelSolver:
             else:
                 continue
             break
+
+        # Write solved values back into the DataFrame (output_array is a copy)
+        output_df.iloc[:, :] = output_array
 
         if len(warnings) > 0:
             print("\n")
@@ -1665,7 +1668,7 @@ class ModelSolver:
                 raise ValueError("method must be std, pct or one")
 
             # Convert DataFrame to numpy array for numerical operations - runs faster this way
-            output_array = solution_diff.to_numpy(dtype=np.float64)
+            output_array = solution_diff.to_numpy(dtype=np.float64, copy=True)
 
             # Solve the model blocks with the modified variable
             for key, val in self._sim_code.items():
