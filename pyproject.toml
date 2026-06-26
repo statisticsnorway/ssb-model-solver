@@ -1,6 +1,6 @@
 [project]
 name = "ssb-model-solver"
-version = "1.4.4"
+version = "1.4.5"
 description = "Class to define, block analyse and solve dynamic and algebraic models numerically"
 authors = [{ name = "Vemund Rundberget", email = "vemund.rundberget@ssb.no" }]
 maintainers = [{ name = "Statistics Norway, National accounts Department (210)" }]
