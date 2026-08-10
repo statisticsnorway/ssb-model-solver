@@ -880,6 +880,8 @@ class ModelSolver:
         in lowercase. The column names are returned as they appear in `input_df`.
 
         The number of unused variables is printed before the names are returned.
+        As in solve_model, a ValueError is raised if `input_df` has no columns or
+        non-unique column names.
 
         Args:
             input_df: A DataFrame containing input data for the model.
@@ -887,9 +889,6 @@ class ModelSolver:
         Returns:
             The names of the columns in `input_df` that the model does not use,
             in the order they appear in `input_df`.
-
-        Raises:
-            ValueError: If `input_df` has no columns or non-unique column names.
 
         Example:
             >>> equations = ["x1 = a1", "x2 = a2", "0.2*x1+0.7*x2 = 0.1*ca+0.8*cb+0.3*i1", "0.8*x1+0.3*x2 = 0.9*ca+0.2*cb+0.1*i2", "k1 = k1(-1)+i1", "k2 = k2(-1)+i2"]
@@ -909,8 +908,9 @@ class ModelSolver:
             Finished
             ----------------------------------------------------------------------------------------------------
             >>> input_data = pd.DataFrame({"x1": [2, 4], "x2": [2, 1], "ca": [1, 3], "cb": [1, 2], "k1": [1, 3], "k2": [1, 2], "a1": [1, 2], "a2": [3, 2], "i1": [1, 2], "i2": [3, 2], "unused": [1, 1]})
-            >>> model.find_unused_vars(input_data)
+            >>> unused_vars = model.find_unused_vars(input_data)
             Number of variables in DataFrame not used by model: 1
+            >>> unused_vars
             ['unused']
         """
         # Raises error if non-unique column names are detected or if dataframe is empty
