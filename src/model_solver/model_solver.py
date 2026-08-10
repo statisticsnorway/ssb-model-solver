@@ -868,6 +868,54 @@ class ModelSolver:
                 f"{duplicates.to_dict()}"
             )
 
+    def find_unused_vars(self, input_df: pd.DataFrame) -> list[str]:
+        """Finds the columns in a DataFrame that are not used by the model.
+
+        A column is considered used if it is either an endogenous variable or an
+        exogenous variable in the model. Variables that only enter the equations
+        with a lag, e.g. "k1(-1)", count as used, since they are read from the
+        column of the variable itself.
+
+        Note that the model is not case sensitive, so column names are compared
+        in lowercase. The column names are returned as they appear in `input_df`.
+
+        Args:
+            input_df: A DataFrame containing input data for the model.
+
+        Returns:
+            The names of the columns in `input_df` that the model does not use,
+            in the order they appear in `input_df`.
+
+        Raises:
+            ValueError: If `input_df` has no columns or non-unique column names.
+
+        Example:
+            >>> equations = ["x1 = a1", "x2 = a2", "0.2*x1+0.7*x2 = 0.1*ca+0.8*cb+0.3*i1", "0.8*x1+0.3*x2 = 0.9*ca+0.2*cb+0.1*i2", "k1 = k1(-1)+i1", "k2 = k2(-1)+i2"]
+            >>> endogenous = ["x1", "x2", "ca", "cb", "k1", "k2"]
+            >>> model = ModelSolver(equations, endogenous)
+            ----------------------------------------------------------------------------------------------------
+            Initializing model
+            * Importing equations
+            * Importing endogenous variables
+            * Analyzing model
+                    * Analyzing equation strings
+                    * Generating bipartite graph (BiGraph) connecting equations and endogenous variables
+                    * Finding maximum bipartite match (MBM) (i.e. associating every equation with exactly one endogenus variable)
+                    * Generating directed graph (DiGraph) connecting endogenous variables using bipartite graph and MBM
+                    * Finding condensation of DiGraph (i.e. determining minimal blocks of systems of simulataneous equations)
+                    * Generating simulation code (i.e. block-wise symbolic objective function, symbolic Jacobian matrix and lists of endogenous and exogenous variables)
+            Finished
+            ----------------------------------------------------------------------------------------------------
+            >>> input_data = pd.DataFrame({"x1": [2, 4], "x2": [2, 1], "ca": [1, 3], "cb": [1, 2], "k1": [1, 3], "k2": [1, 2], "a1": [1, 2], "a2": [3, 2], "i1": [1, 2], "i2": [3, 2], "unused": [1, 1]})
+            >>> model.find_unused_vars(input_data)
+            ['unused']
+        """
+        # Raises error if non-unique column names are detected or if dataframe is empty
+        self._validate_unique_column_names(input_df)
+
+        used_vars = {*self.endo_vars, *self.exog_vars}
+        return [x for x in input_df.columns if str(x).lower() not in used_vars]
+
     def solve_model(self, input_df: pd.DataFrame, jit: bool = True) -> pd.DataFrame:
         """Solves the model subject to a given DataFrame.
 
