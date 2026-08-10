@@ -195,11 +195,20 @@ def test_find_unused_vars_none_unused(
 
 
 def test_find_unused_vars(
-    equations: list[str], endogenous: list[str], input_data: pd.DataFrame
+    equations: list[str],
+    endogenous: list[str],
+    input_data: pd.DataFrame,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     model = ms.ModelSolver(equations, endogenous)
     input_data = input_data.assign(unused1=[1, 1, 1, 1], unused2=[2, 2, 2, 2])
     assert model.find_unused_vars(input_data) == ["unused1", "unused2"]
+
+    # The number of unused variables is printed before they are returned
+    assert (
+        "Number of variables in DataFrame not used by model: 2"
+        in capsys.readouterr().out
+    )
 
 
 def test_find_unused_vars_is_case_insensitive(

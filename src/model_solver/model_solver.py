@@ -879,6 +879,8 @@ class ModelSolver:
         Note that the model is not case sensitive, so column names are compared
         in lowercase. The column names are returned as they appear in `input_df`.
 
+        The number of unused variables is printed before the names are returned.
+
         Args:
             input_df: A DataFrame containing input data for the model.
 
@@ -908,13 +910,18 @@ class ModelSolver:
             ----------------------------------------------------------------------------------------------------
             >>> input_data = pd.DataFrame({"x1": [2, 4], "x2": [2, 1], "ca": [1, 3], "cb": [1, 2], "k1": [1, 3], "k2": [1, 2], "a1": [1, 2], "a2": [3, 2], "i1": [1, 2], "i2": [3, 2], "unused": [1, 1]})
             >>> model.find_unused_vars(input_data)
+            Number of variables in DataFrame not used by model: 1
             ['unused']
         """
         # Raises error if non-unique column names are detected or if dataframe is empty
         self._validate_unique_column_names(input_df)
 
         used_vars = {*self.endo_vars, *self.exog_vars}
-        return [x for x in input_df.columns if str(x).lower() not in used_vars]
+        unused_vars = [x for x in input_df.columns if str(x).lower() not in used_vars]
+
+        print(f"Number of variables in DataFrame not used by model: {len(unused_vars)}")
+
+        return unused_vars
 
     def solve_model(self, input_df: pd.DataFrame, jit: bool = True) -> pd.DataFrame:
         """Solves the model subject to a given DataFrame.
