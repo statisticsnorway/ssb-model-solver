@@ -107,6 +107,31 @@ def test_solve_model(
         assert solution[col].tolist() == pytest.approx(values, rel=TOLERANCE)
 
 
+# Test that solving replaces the initial values with the known solution.
+# Without this, a solver that silently left the input untouched would still pass
+# the tests that only compare one solution to another
+def test_solve_model_changes_values_to_known_solution() -> None:
+    # x+y = a and x-y = b is solved by x = (a+b)/2 and y = (a-b)/2
+    model = ms.ModelSolver(["x+y = a", "x-y = b"], ["x", "y"])
+    input_data = pd.DataFrame(
+        {"x": [0.0, 0.0], "y": [0.0, 0.0], "a": [10.0, 6.0], "b": [4.0, 2.0]},
+        index=["2019Q1", "2019Q2"],
+    )
+
+    solution = model.solve_model(input_data)
+
+    # The initial values are deliberately wrong, so they must have been replaced
+    assert (solution["x"] != input_data["x"]).all()
+    assert (solution["y"] != input_data["y"]).all()
+
+    assert solution["x"].tolist() == pytest.approx([7.0, 4.0], rel=TOLERANCE)
+    assert solution["y"].tolist() == pytest.approx([3.0, 2.0], rel=TOLERANCE)
+
+    # The exogenous variables must be left as they were
+    assert solution["a"].tolist() == input_data["a"].tolist()
+    assert solution["b"].tolist() == input_data["b"].tolist()
+
+
 # Test switching endogenous variables
 def test_switch_endo_vars(equations: list[str], endogenous: list[str]) -> None:
     model = ms.ModelSolver(equations, endogenous)
