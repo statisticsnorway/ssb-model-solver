@@ -63,7 +63,10 @@ class _BlockFun:
         """Stores the lambdified objective function or Jacobian matrix."""
         self._lam = lam
 
-    def __call__(self, val_list: Sequence[Any], *args: Any) -> NDArray[Any]:
+    # Newton-Raphson passes the endogenous values both as a list and as an array
+    def __call__(
+        self, val_list: Sequence[Any] | NDArray[Any], *args: Any
+    ) -> NDArray[Any]:
         """Returns the value for the given endogenous and predetermined values."""
         return np.asarray(self._lam(*val_list, *args))
 
