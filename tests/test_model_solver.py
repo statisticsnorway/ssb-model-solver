@@ -245,6 +245,56 @@ def test_pickle_model_with_constant_definition() -> None:
     pd.testing.assert_frame_equal(unpickled_model.solve_model(input_data), solution)
 
 
+# Test finding unused columns in the input DataFrame
+def test_find_unused_vars_none_unused(
+    equations: list[str], endogenous: list[str], input_data: pd.DataFrame
+) -> None:
+    model = ms.ModelSolver(equations, endogenous)
+    assert model.find_unused_vars(input_data) == []
+
+
+def test_find_unused_vars(
+    equations: list[str],
+    endogenous: list[str],
+    input_data: pd.DataFrame,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    model = ms.ModelSolver(equations, endogenous)
+    input_data = input_data.assign(unused1=[1, 1, 1, 1], unused2=[2, 2, 2, 2])
+    assert model.find_unused_vars(input_data) == ["unused1", "unused2"]
+
+    # The number of unused variables is printed before they are returned
+    assert (
+        "Number of variables in DataFrame not used by model: 2"
+        in capsys.readouterr().out
+    )
+
+
+def test_find_unused_vars_is_case_insensitive(
+    equations: list[str], endogenous: list[str], input_data: pd.DataFrame
+) -> None:
+    model = ms.ModelSolver(equations, endogenous)
+    input_data = input_data.rename(columns={"a1": "A1"})
+    assert model.find_unused_vars(input_data) == []
+
+
+def test_find_unused_vars_counts_lagged_vars_as_used(
+    equations: list[str], endogenous: list[str], input_data: pd.DataFrame
+) -> None:
+    # k1 only enters the equations of other variables as k1(-1), but is still used
+    model = ms.ModelSolver(equations, ["x1", "x2", "ca", "cb", "i1", "k2"])
+    assert "k1" not in model.find_unused_vars(input_data)
+
+
+def test_find_unused_vars_rejects_invalid_df(
+    equations: list[str], endogenous: list[str]
+) -> None:
+    model = ms.ModelSolver(equations, endogenous)
+    with pytest.raises(ValueError) as exc_info:
+        model.find_unused_vars(pd.DataFrame(columns=["a1", "a1"]))
+    assert "Found duplicate column names in DataFrame" in str(exc_info.value)
+
+
 def test_validate_unique_column_names_passes() -> None:
     """Test that validation passes with unique column names."""
     df = pd.DataFrame(columns=["A", "B", "C"])
