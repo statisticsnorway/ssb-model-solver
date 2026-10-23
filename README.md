@@ -76,6 +76,7 @@ When the class is finished instatiating, the user can call the following methods
 * ```model.find_endo_var('var')``` returns the block number in which `var` is solved for.
 * ```model.show_block(block_number)``` returns information about the block: endogenous variables, predetermined variables and equations.
 * ```model.show_blocks()``` returns information about all blocks.
+* ```model.find_unused_vars(dataframe)``` returns a list of the columns in `dataframe` that the model does not use, neither as endogenous nor as exogenous variables.
 * ```model.trace_to_exog_vars(block_nunber)``` traces back to the exogenous variables that may affect the block.
 * ```model.trace_to_exog_vals(block_nunber, period_index)``` traces back to the exogenous variable values for the period.
 * ```model.draw_blockwise_graph(variable, maximum_ancestor_generations, maximum_decendants_generations)``` where `variable` is a variable of interest, and `maximum_ancestor_generations` and `maximum_decendants_generations`are non-negative integers that governs the number of generations before and after the variable to be graphed. The output is a HTML-file with a relational graph.
