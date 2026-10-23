@@ -132,6 +132,52 @@ def test_solve_model_changes_values_to_known_solution() -> None:
     assert solution["b"].tolist() == input_data["b"].tolist()
 
 
+# Test that Newton-Raphson reports a NaN or infinite residual as a failure.
+# np.max(np.abs(f)) > 0 is False for NaN, so a NaN residual used to end the iteration
+# at once with status 0 and the initial values returned as if they were a solution
+@pytest.mark.parametrize("residual", [np.nan, np.inf, -np.inf])
+def test_newton_raphson_non_finite_residual_fails(residual: float) -> None:
+    solution = ms.ModelSolver._newton_raphson(
+        lambda x, *args: np.array([residual]),
+        np.array([0.0]),
+        (),
+        lambda x, *args: np.array([[1.0]]),
+        tol=1e-7,
+        maxiter=10,
+    )
+
+    assert solution["status"] == 2
+    assert solution["success"] is False
+
+
+# Test that a simultaneous block whose initial values give a NaN residual is reported
+# as failed, instead of being solved by the initial values
+def test_solve_model_nan_residual_fails(capsys: pytest.CaptureFixture[str]) -> None:
+    # x/y is 0/0 = NaN for the initial values x = y = 0
+    model = ms.ModelSolver(["x+y = a", "x/y = b"], ["x", "y"])
+    input_data = pd.DataFrame(
+        {"x": [0.0], "y": [0.0], "a": [10.0], "b": [4.0]}, index=["2019Q1"]
+    )
+
+    model.solve_model(input_data)
+
+    assert "Failed to solve block 1 in 2019Q1" in capsys.readouterr().out
+
+
+# Test that the same model is solved from valid initial values
+def test_solve_model_nan_residual_model_solves_from_valid_start() -> None:
+    # x+y = 10 and x/y = 4 is solved by x = 8 and y = 2
+    model = ms.ModelSolver(["x+y = a", "x/y = b"], ["x", "y"])
+    input_data = pd.DataFrame(
+        {"x": [1.0], "y": [1.0], "a": [10.0], "b": [4.0]}, index=["2019Q1"]
+    )
+
+    solution = model.solve_model(input_data)
+
+    assert solution["x"].tolist() == pytest.approx([8.0], rel=TOLERANCE)
+    assert solution["y"].tolist() == pytest.approx([2.0], rel=TOLERANCE)
+
+
 # Test switching endogenous variables
 def test_switch_endo_vars(equations: list[str], endogenous: list[str]) -> None:
     model = ms.ModelSolver(equations, endogenous)
