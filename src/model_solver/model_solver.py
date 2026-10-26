@@ -1140,7 +1140,15 @@ class ModelSolver:
         x_i = init
         f_i = np.array(f(init.tolist(), *args))
         i = 0
-        while np.max(np.abs(f_i)) > 0:
+        while True:
+            # A NaN or infinite residual is a failure. It must be checked before the
+            # convergence test, since np.max(np.abs(f_i)) > 0 is False for NaN
+            if all(np.isfinite(f_i)) is False:
+                success = False
+                status = 2
+                break
+            if np.max(np.abs(f_i)) == 0:
+                break
             if i == maxiter:
                 success = False
                 status = 1
